@@ -489,7 +489,7 @@ async def cb_menu_accounts(callback: types.CallbackQuery):
             lines.append(
                 f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`"
             )
-            if acc.get('otp'):
+            if acc.get('otp') and acc.get('otp') != 'N/A' and acc.get('otp') != 'None':
                 lines.append(f"    🔐 OTP: `{acc['otp']}`")
             if acc.get('cookies'):
                 lines.append(f"    🍪 Cookies: `{acc['cookies']}`")
@@ -530,7 +530,7 @@ async def cb_my_accounts(callback: types.CallbackQuery):
             lines.append(
                 f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`"
             )
-            if acc.get('otp'):
+            if acc.get('otp') and acc.get('otp') != 'N/A' and acc.get('otp') != 'None':
                 lines.append(f"    🔐 OTP: `{acc['otp']}`")
             if acc.get('cookies'):
                 lines.append(f"    🍪 Cookies: `{acc['cookies']}`")
@@ -562,7 +562,7 @@ async def cb_bot_accounts(callback: types.CallbackQuery):
             lines.append(
                 f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`{by_line}"
             )
-            if acc.get('otp'):
+            if acc.get('otp') and acc.get('otp') != 'N/A' and acc.get('otp') != 'None':
                 lines.append(f"    🔐 OTP: `{acc['otp']}`")
             if acc.get('cookies'):
                 lines.append(f"    🍪 Cookies: `{acc['cookies']}`")
@@ -834,19 +834,24 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                         user_credits[uid] = max(0, user_credits.get(uid, 0) - 1)
                     credits_left = "" if uid == OWNER_ID else f"\n💳 Credits left: *{user_credits.get(uid, 0)}*"
                     
+                    # Get OTP value - ensure it's not None
+                    otp_value = result.get("otp_fetched")
+                    if otp_value is None or otp_value == "None":
+                        otp_value = "N/A"
+                    
                     account_data = {
                         "name":     result["name"],
                         "email":    result["email"],
                         "password": result["password"],
                         "uid":      result["uid"],
                         "cookies":  result.get("cookies", ""),
-                        "otp":      result.get("otp_fetched", "N/A"),
+                        "otp":      otp_value,
                         "by":       uid,
                     }
                     created_accounts.append(account_data)
                     save_users()
                     
-                    otp_msg = f"\n🔐 *OTP:* `{result.get('otp_fetched', 'N/A')}`"
+                    otp_msg = f"\n🔐 *OTP:* `{otp_value}`" if otp_value != "N/A" else "\n🔐 *OTP:* `Not Required (Direct Login)`"
                     cookie_msg = f"\n🍪 *Cookies:* `{result.get('cookies', 'N/A')}`"
                     
                 await bot.send_message(
