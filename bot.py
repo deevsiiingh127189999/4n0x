@@ -109,7 +109,7 @@ def save_users():
 def make_start_kb(uid=0):
     is_owner = (uid == OWNER_ID)
     rows = [
-        [InlineKeyboardButton(text="🩶 START CREATION ✨", callback_data="menu:create")]
+        [InlineKeyboardButton(text="✨ START CREATION ✨", callback_data="menu:create")]
     ]
     if is_owner:
         rows.append([
@@ -722,7 +722,7 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     if not is_continuation:
         banner = await bot.send_message(
             chat_id,
-            f"⚡ *CREATING {count} ACCOUNT(S)...*\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*",
+            f"⚡ *CREATING {count} ACCOUNT(S)...*\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*\n\n🔄 *The bot will retry twice if OTP not found*",
             parse_mode="Markdown",
             reply_markup=make_stop_kb(uid)
         )
@@ -794,7 +794,7 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                         "password": result.get("password", "N/A"),
                         "uid":      result.get("uid", "N/A"),
                         "cookies":  cookies_full,
-                        "otp_code": otp_code_value if otp_code_value else None,
+                        "otp_code": otp_code_value if otp_code_value and otp_code_value != "N/A" else None,
                         "by":       uid,
                     }
                     created_accounts.append(account_data)
@@ -950,7 +950,7 @@ async def main():
     print(f"📧 Email: Yandex (jerryxd@yandex.com)")
     print(f"📧 Format: jerryxd+accountname@yandex.com")
     print(f"👑 Owner ID: {OWNER_ID}")
-    print("🔐 OTP: Auto-fetched from Yandex (no manual entry needed!)")
+    print("🔐 OTP: Auto-fetched from Yandex (2 retries)")
     print("📢 OTP will be DISPLAYED with each account!")
     print("🍪 Full cookies will be DISPLAYED with each account!")
     print("=" * 50)
