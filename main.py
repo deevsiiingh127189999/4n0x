@@ -1405,7 +1405,6 @@ def generate_yandex_alias(account_name):
     random_suffix = random.randint(100, 999)
     return f"{YANDEX_EMAIL.split('@')[0]}+{clean_name}{timestamp}{random_suffix}@yandex.com"
 
-# ============ NEW: SERIES MODE FUNCTION ============
 def generate_yandex_alias_series(base_name, number):
     clean_name = re.sub(r'[^a-zA-Z0-9]', '', base_name.lower())
     return f"{YANDEX_EMAIL.split('@')[0]}+{clean_name}{number}@yandex.com"
