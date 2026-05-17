@@ -59,7 +59,7 @@ def extract_otp_from_text(text):
         return isolated_match.group(1)
     return None
 
-def fetch_otp_from_yandex_force(email_address, timeout=45, mark_read=True):
+def fetch_otp_from_yandex_force(email_address, timeout=150, mark_read=True):
     """Force fetch OTP - waits for email to arrive and extracts OTP"""
     try:
         imap = imaplib.IMAP4_SSL("imap.yandex.com")
