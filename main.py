@@ -67,7 +67,7 @@ def wait_for_otp_email(email_address, timeout=90, mark_read=True):
         imap.select("INBOX")
         
         start_time = time.time()
-        print(f"{Y}[*] Waiting for OTP email to {email_address}...{W}")
+        print(f"{Y}[*] Waiting for OTP email to {email_address} (max {timeout}s)...{W}")
         
         while time.time() - start_time < timeout:
             # Search for emails to this address
@@ -350,7 +350,7 @@ def submit_otp_to_facebook(session, otp_code, max_attempts=3):
 def confirm_account_with_auto_otp(session, email_address, max_retries=3):
     for attempt in range(max_retries):
         print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP...{W}")
-        otp_code = wait_for_otp_email(email_address, timeout=60, mark_read=True)  # Changed to wait_for_otp_email
+        otp_code = wait_for_otp_email(email_address, timeout=60, mark_read=True)
         if otp_code:
             success, uid, cookies = submit_otp_to_facebook(session, otp_code)
             if success and uid:
@@ -359,7 +359,7 @@ def confirm_account_with_auto_otp(session, email_address, max_retries=3):
         print(f"{Y}[*] No OTP yet, trying to request resend...{W}")
         current_page = session.get("https://mbasic.facebook.com/", allow_redirects=True)
         if request_resend_code(session, current_page.text):
-            print(f"{G}[✓] Resend requested, waiting 25 seconds...{W}")
+            print(f"{G}[✓] Resend requested, waiting 30 seconds...{W}")
             otp_code = wait_for_otp_email(email_address, timeout=30, mark_read=True)
             if otp_code:
                 success, uid, cookies = submit_otp_to_facebook(session, otp_code)
@@ -1920,7 +1920,7 @@ def register_account(domain_choice, name_option="1", gender_option="3", custom_p
                 else:
                     cookie_str = "; ".join([f"{k}={v}" for k, v in login_coki.items()])
                     # Wait for OTP email
-                    print(f"{Y}[*] Waiting for OTP email for {email}...{W}")
+                    print(f"{Y}[*] Waiting for OTP email for {email} (max 60 sec)...{W}")
                     otp_code = wait_for_otp_email(email, timeout=60)
                     return {
                         "name": f"{firstname} {lastname}",
