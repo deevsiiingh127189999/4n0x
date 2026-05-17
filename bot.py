@@ -109,7 +109,7 @@ def save_users():
 def make_start_kb(uid=0):
     is_owner = (uid == OWNER_ID)
     rows = [
-        [InlineKeyboardButton(text="🫪 START CREATION ✨", callback_data="menu:create")]
+        [InlineKeyboardButton(text="✨ START CREATION ✨", callback_data="menu:create")]
     ]
     if is_owner:
         rows.append([
