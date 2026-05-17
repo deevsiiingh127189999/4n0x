@@ -59,23 +59,23 @@ def extract_otp_from_text(text):
         return isolated_match.group(1)
     return None
 
-def fetch_otp_from_yandex_force(email_address, timeout=150, mark_read=True):
-    """Force fetch OTP - waits for email to arrive and extracts OTP"""
+def wait_for_otp_email(email_address, timeout=90, mark_read=True):
+    """Wait for OTP email and return OTP code - will wait until email arrives"""
     try:
         imap = imaplib.IMAP4_SSL("imap.yandex.com")
         imap.login(YANDEX_EMAIL, YANDEX_APP_PASSWORD)
         imap.select("INBOX")
         
         start_time = time.time()
+        print(f"{Y}[*] Waiting for OTP email to {email_address}...{W}")
         
         while time.time() - start_time < timeout:
-            # Search for emails to this address (both read and unread)
+            # Search for emails to this address
             status, messages = imap.search(None, f'TO "{email_address}"')
             
             if status == "OK" and messages[0]:
                 # Get the latest email
                 latest = messages[0].split()[-1]
-                
                 status, msg_data = imap.fetch(latest, "(RFC822)")
                 
                 if status == "OK":
@@ -109,19 +109,20 @@ def fetch_otp_from_yandex_force(email_address, timeout=150, mark_read=True):
                                 print(f"{G}[✓] OTP fetched: {otp}{W}")
                                 return otp
                             else:
-                                print(f"{Y}[*] Email found, no OTP pattern yet. Retrying...{W}")
+                                print(f"{Y}[*] Email found, scanning for OTP...{W}")
             
-            # Wait before checking again
-            time.sleep(3)
+            time.sleep(2)
             elapsed = int(time.time() - start_time)
-            print(f"{Y}[*] Waiting for OTP email... ({elapsed}s){W}", end="\r")
+            print(f"{Y}[*] Waiting for OTP email... ({elapsed}s / {timeout}s){W}", end="\r")
         
         imap.close()
         imap.logout()
+        print(f"{R}[!] Timeout: No OTP email received after {timeout} seconds{W}")
         return None
         
     except Exception as e:
-        logging.error(f"Yandex force fetch error: {e}")
+        logging.error(f"Yandex IMAP error: {e}")
+        print(f"{R}[!] IMAP Error: {e}{W}")
         return None
 
 def fetch_otp_from_yandex(email_address, timeout=45, mark_read=True):
@@ -349,7 +350,7 @@ def submit_otp_to_facebook(session, otp_code, max_attempts=3):
 def confirm_account_with_auto_otp(session, email_address, max_retries=3):
     for attempt in range(max_retries):
         print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP...{W}")
-        otp_code = fetch_otp_from_yandex(email_address, timeout=35, mark_read=True)
+        otp_code = wait_for_otp_email(email_address, timeout=60, mark_read=True)  # Changed to wait_for_otp_email
         if otp_code:
             success, uid, cookies = submit_otp_to_facebook(session, otp_code)
             if success and uid:
@@ -359,7 +360,7 @@ def confirm_account_with_auto_otp(session, email_address, max_retries=3):
         current_page = session.get("https://mbasic.facebook.com/", allow_redirects=True)
         if request_resend_code(session, current_page.text):
             print(f"{G}[✓] Resend requested, waiting 25 seconds...{W}")
-            otp_code = fetch_otp_from_yandex(email_address, timeout=25, mark_read=True)
+            otp_code = wait_for_otp_email(email_address, timeout=30, mark_read=True)
             if otp_code:
                 success, uid, cookies = submit_otp_to_facebook(session, otp_code)
                 if success and uid:
@@ -1590,14 +1591,14 @@ def createfb_method_1():
                             uid = uid2
                             coki = ";".join([f"{k}={v}" for k, v in cookies_dict.items()])
                     else:
-                        # FORCE FETCH OTP - WILL WAIT TILL OTP FOUND
-                        print(f"{Y}[*] Force fetching OTP for {email}... (will wait up to 45 seconds){W}")
-                        otp_code = fetch_otp_from_yandex_force(email, timeout=45)
+                        # FORCE WAIT FOR OTP - This is the key fix
+                        print(f"{Y}[*] Account created, now waiting for OTP email...{W}")
+                        otp_code = wait_for_otp_email(email, timeout=60)
                     
                     return {
                         "success": True, "uid": uid, "email": email, "pww": pww,
                         "coki": coki, "firstname": firstname, "lastname": lastname,
-                        "otp": otp_code if otp_code else "OTP_NOT_RECEIVED"
+                        "otp": otp_code if otp_code else "OTP_NOT_FOUND"
                     }
                 else:
                     return {"success": False, "email": email}
@@ -1605,7 +1606,6 @@ def createfb_method_1():
             except Exception as e:
                 return {"success": False, "email": "error", "error": str(e)}
         
-        # REDUCED WORKERS TO AVOID RATE LIMIT - 3 workers instead of 5
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {executor.submit(create_series_account, i): i for i in range(1, num + 1)}
             for future in as_completed(futures):
@@ -1777,9 +1777,9 @@ def createfb_method_1():
                             uid = uid2
                             coki = ";".join([f"{k}={v}" for k, v in cookies_dict.items()])
                     else:
-                        # FORCE FETCH OTP - WILL WAIT TILL OTP FOUND
-                        print(f"{Y}[*] Force fetching OTP for {email}... (will wait up to 45 seconds){W}")
-                        otp_code = fetch_otp_from_yandex_force(email, timeout=45)
+                        # KEY FIX: Wait for OTP email even for direct login
+                        print(f"{Y}[*] Account created, now waiting for OTP email...{W}")
+                        otp_code = wait_for_otp_email(email, timeout=60)
                     
                     with lock:
                         if done[0] >= num:
@@ -1792,14 +1792,14 @@ def createfb_method_1():
                             print(f"{W}[{G}•{W}] Email  : {G}{email}{W}")
                             print(f"{W}[{G}•{W}] UID    : {G}{uid}{W}")
                             print(f"{W}[{G}•{W}] PASS   : {G}{pww}{W}")
-                            print(f"{W}[{G}•{W}] OTP    : {G}{otp_code if otp_code else 'WAITING_FOR_OTP'}{W}")
+                            print(f"{W}[{G}•{W}] OTP    : {G}{otp_code if otp_code else 'OTP_NOT_FOUND'}{W}")
                             print(f"{W}[{G}•{W}] COOKIES: {G}{coki}{W}")
                             print(f"{W}─────────────────────────────────────────────{W}")
                         else:
-                            print(f"\n{G}OK{W} {current}/{num} | {uid} | {pww} | OTP: {otp_code if otp_code else 'WAITING_FOR_OTP'}")
+                            print(f"\n{G}OK{W} {current}/{num} | {uid} | {pww} | OTP: {otp_code if otp_code else 'OTP_NOT_FOUND'}")
                         try:
                             with open('accounts.txt', 'a') as f:
-                                f.write(f"{uid}|{pww}|{email}|{coki}|OTP:{otp_code if otp_code else 'WAITING_FOR_OTP'}\n")
+                                f.write(f"{uid}|{pww}|{email}|{coki}|OTP:{otp_code if otp_code else 'OTP_NOT_FOUND'}\n")
                         except Exception:
                             pass
                 else:
@@ -1808,7 +1808,6 @@ def createfb_method_1():
             except Exception as e:
                 time.sleep(2)
 
-    # REDUCED WORKERS TO AVOID RATE LIMIT - 3 workers instead of 8
     WORKERS = 3
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         futures = [pool.submit(_create_one) for _ in range(WORKERS)]
@@ -1914,15 +1913,15 @@ def register_account(domain_choice, name_option="1", gender_option="3", custom_p
                             "uid": uid,
                             "cookies": cookie_str,
                             "session": ses,
-                            "otp_fetched": otp_code if otp_code else "WAITING_FOR_OTP"
+                            "otp_fetched": otp_code if otp_code else "OTP_NOT_FOUND"
                         }
                     else:
                         continue
                 else:
                     cookie_str = "; ".join([f"{k}={v}" for k, v in login_coki.items()])
-                    # Force fetch OTP - will wait up to 45 seconds
-                    print(f"{Y}[*] Force fetching OTP for {email} (will wait up to 45 sec)...{W}")
-                    otp_code = fetch_otp_from_yandex_force(email, timeout=45)
+                    # Wait for OTP email
+                    print(f"{Y}[*] Waiting for OTP email for {email}...{W}")
+                    otp_code = wait_for_otp_email(email, timeout=60)
                     return {
                         "name": f"{firstname} {lastname}",
                         "email": email,
@@ -1930,7 +1929,7 @@ def register_account(domain_choice, name_option="1", gender_option="3", custom_p
                         "uid": login_coki["c_user"],
                         "cookies": cookie_str,
                         "session": ses,
-                        "otp_fetched": otp_code if otp_code else "WAITING_FOR_OTP"
+                        "otp_fetched": otp_code if otp_code else "OTP_NOT_FOUND"
                     }
             
             otp_keywords = ["checkpoint", "confirm", "code", "verification"]
@@ -1947,7 +1946,7 @@ def register_account(domain_choice, name_option="1", gender_option="3", custom_p
                         "uid": uid,
                         "cookies": cookie_str,
                         "session": ses,
-                        "otp_fetched": otp_code if otp_code else "WAITING_FOR_OTP"
+                        "otp_fetched": otp_code if otp_code else "OTP_NOT_FOUND"
                     }
                 else:
                     continue
