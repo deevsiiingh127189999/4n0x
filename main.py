@@ -43,117 +43,15 @@ ua = UserAgent()
 YANDEX_EMAIL = "jerryxd@yandex.com"
 YANDEX_APP_PASSWORD = "kshxbeousfpcbxgq"
 
-# ============ NEW FUNCTIONS (ADDED WITHOUT CHANGING ORIGINAL) ============
-
-def final_checkpoint_verify(session, uid):
-    """Account ke final checkpoint ko complete karta hai"""
-    try:
-        resp = session.get("https://mbasic.facebook.com/checkpoint/?next=https://mbasic.facebook.com/", allow_redirects=True)
-        if "checkpoint" not in resp.text.lower():
-            return True
-        
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        fb_dtsg = None
-        dtsg_input = soup.find('input', {'name': 'fb_dtsg'})
-        if dtsg_input:
-            fb_dtsg = dtsg_input.get('value')
-        
-        data = {
-            'fb_dtsg': fb_dtsg,
-            'submit[Continue]': 'Continue'
-        }
-        post_resp = session.post("https://mbasic.facebook.com/checkpoint/", data=data, allow_redirects=True)
-        
-        if "c_user" in session.cookies.get_dict():
-            return True
-        return False
-    except:
-        return False
-
-def trigger_resend_otp(session):
-    """Checkpoint page se resend OTP ka button click karega"""
-    try:
-        resp = session.get("https://mbasic.facebook.com/checkpoint/", allow_redirects=True)
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        
-        for btn in soup.find_all(['a', 'button']):
-            text = btn.get_text().lower()
-            if 'resend' in text or 'again' in text or 'send again' in text:
-                url = btn.get('href')
-                if url:
-                    if not url.startswith('http'):
-                        url = 'https://mbasic.facebook.com' + url
-                    session.get(url, allow_redirects=True)
-                    return True
-        return False
-    except:
-        return False
-
-def fix_cookies_for_verification(session, uid):
-    """Cookies mein missing keys add karta hai for full verification"""
-    cookies = session.cookies.get_dict()
-    needs_save = False
-    
-    if 'c_user' in cookies and 'xs' not in cookies:
-        import random
-        import string
-        xs_token = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-        session.cookies.set('xs', xs_token, domain='.facebook.com')
-        needs_save = True
-    
-    if 'fr' not in cookies:
-        session.cookies.set('fr', 'auto_generated', domain='.facebook.com')
-        needs_save = True
-    
-    if needs_save:
-        return session.cookies.get_dict()
-    return cookies
-
-def check_account_status(session, uid):
-    """Check karta hai account fully verified hai ya nahi"""
-    try:
-        resp = session.get(f"https://mbasic.facebook.com/profile.php?id={uid}", allow_redirects=True)
-        text_lower = resp.text.lower()
-        
-        if 'checkpoint' in text_lower or 'confirm' in text_lower:
-            return "PENDING", "Checkpoint active"
-        
-        if 'confirm your email' in text_lower or 'verify your email' in text_lower:
-            return "WARNING", "Email not verified"
-        
-        if f'id="{uid}"' in resp.text or f'profile.php?id={uid}' in resp.text:
-            return "VERIFIED", "Account active"
-        
-        if 're-verify' in text_lower or 'resend confirmation' in text_lower:
-            return "PENDING", "Need email confirmation"
-        
-        return "UNKNOWN", "Check manually"
-    except:
-        return "ERROR", "Could not check"
-
-def save_verified_account(uid, password, email, cookies_dict, status):
-    """Sirf verified accounts ko verified.txt mein save karega"""
-    cookie_str = ";".join([f"{k}={v}" for k, v in cookies_dict.items()])
-    
-    if status == "VERIFIED":
-        with open('verified_accounts.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{uid}|{password}|{email}|{cookie_str}|{status}\n")
-        return True
-    elif status == "WARNING":
-        with open('pending_verification.txt', 'a', encoding='utf-8') as f:
-            f.write(f"{uid}|{password}|{email}|{cookie_str}|{status}\n")
-        return False
-    return False
-
-# ============ OTP EXTRACTION - STRONG FIX ============
+# ============ OTP EXTRACTION - STRONGEST EVER ============
 def extract_otp_from_text(text):
-    """Har tarah ke OTP ko dhundhne ke liye - STRONG FIX"""
+    """Har tarah ke OTP ko dhundhne ke liye - FB-75844, code:123456, etc."""
     if not text:
         return None
     text = html.unescape(text)
     
-    # Pattern 1: FB-12345 or FB12345
-    fb_match = re.search(r'FB[-\s]*(\d{5,6})', text, re.IGNORECASE)
+    # Pattern 1: FB-75844 ya FB75844 (Screenshot me jo dikha)
+    fb_match = re.search(r'FB[-]?\s*(\d{5,6})', text, re.IGNORECASE)
     if fb_match:
         return fb_match.group(1)
     
@@ -167,7 +65,7 @@ def extract_otp_from_text(text):
     if fb_code_match:
         return fb_code_match.group(1)
     
-    # Pattern 4: 6 digit number alone (most common)
+    # Pattern 4: 6 digit number alone
     isolated_match = re.search(r'(?<!\d)(\d{6})(?!\d)', text)
     if isolated_match:
         return isolated_match.group(1)
@@ -179,82 +77,86 @@ def extract_otp_from_text(text):
     
     return None
 
-def fetch_otp_from_yandex(email_address, timeout=90, mark_read=True, retry_count=2):
-    """Yandex se OTP fetch karega - ab 2 baar retry karega"""
-    for retry in range(retry_count):
-        if retry > 0:
-            print(f"{Y}[*] Retry {retry}/{retry_count} - Waiting again...{W}")
-            time.sleep(10)
+def fetch_otp_from_yandex(email_address, timeout=90, mark_read=True):
+    """Yandex se OTP fetch karega - proper IMAP search"""
+    try:
+        imap = imaplib.IMAP4_SSL("imap.yandex.com")
+        imap.login(YANDEX_EMAIL, YANDEX_APP_PASSWORD)
+        imap.select("INBOX")
         
-        try:
-            imap = imaplib.IMAP4_SSL("imap.yandex.com")
-            imap.login(YANDEX_EMAIL, YANDEX_APP_PASSWORD)
-            imap.select("INBOX")
-            
-            start_time = time.time()
-            
-            while time.time() - start_time < timeout:
-                # Search by TO address
-                status, messages = imap.search(None, f'(UNSEEN TO "{email_address}")')
-                
-                # If not found, search by TEXT (subject/body contains the alias)
-                if status != "OK" or not messages[0]:
-                    alias_part = email_address.split('@')[0]
-                    status, messages = imap.search(None, f'(UNSEEN TEXT "{alias_part}")')
-                
-                if status == "OK" and messages[0]:
-                    latest = messages[0].split()[-1]
-                    status, msg_data = imap.fetch(latest, "(RFC822)")
-                    
-                    if status == "OK":
-                        for response_part in msg_data:
-                            if isinstance(response_part, tuple):
-                                msg = email.message_from_bytes(response_part[1])
-                                subject, encoding = decode_header(msg["Subject"])[0]
-                                if isinstance(subject, bytes):
-                                    subject = subject.decode(encoding if encoding else "utf-8")
-                                
-                                body = ""
-                                if msg.is_multipart():
-                                    for part in msg.walk():
-                                        if part.get_content_type() == "text/plain":
-                                            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                                            break
-                                        elif part.get_content_type() == "text/html":
-                                            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                                            break
-                                else:
-                                    body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
-                                
-                                full_text = subject + " " + body
-                                otp = extract_otp_from_text(full_text)
-                                
-                                if otp and len(otp) >= 5:
-                                    if mark_read:
-                                        imap.store(latest, '+FLAGS', '\\Seen')
-                                    imap.close()
-                                    imap.logout()
-                                    print(f"{G}[✓] OTP fetched: {otp}{W}")
-                                    return otp
-                                else:
-                                    print(f"{Y}[*] Email found but no OTP pattern matched. Trying another...{W}")
-                
-                time.sleep(5)
-                elapsed = int(time.time() - start_time)
-                print(f"{Y}[*] Polling for OTP... ({elapsed}s){W}", end="\r")
-            
-            imap.close()
-            imap.logout()
-            
-        except Exception as e:
-            logging.error(f"Yandex IMAP error: {e}")
-            print(f"{R}[!] IMAP Error: {e}{W}")
+        start_time = time.time()
         
-        if retry < retry_count - 1:
-            print(f"{Y}[*] No OTP found, retrying in 10 seconds...{W}")
-            time.sleep(10)
-    
-    return None
+        while time.time() - start_time < timeout:
+            # Search by TO address
+            status, messages = imap.search(None, f'(UNSEEN TO "{email_address}")')
+            
+            # If not found, search by TEXT (subject/body contains the alias)
+            if status != "OK" or not messages[0]:
+                alias_part = email_address.split('@')[0]
+                status, messages = imap.search(None, f'(UNSEEN TEXT "{alias_part}")')
+            
+            # Try searching by FROM Facebook
+            if status != "OK" or not messages[0]:
+                status, messages = imap.search(None, 'UNSEEN FROM "facebookmail.com"')
+            
+            if status == "OK" and messages[0]:
+                latest = messages[0].split()[-1]
+                status, msg_data = imap.fetch(latest, "(RFC822)")
+                
+                if status == "OK":
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple):
+                            msg = email.message_from_bytes(response_part[1])
+                            subject, encoding = decode_header(msg["Subject"])[0]
+                            if isinstance(subject, bytes):
+                                subject = subject.decode(encoding if encoding else "utf-8")
+                            
+                            body = ""
+                            if msg.is_multipart():
+                                for part in msg.walk():
+                                    if part.get_content_type() == "text/plain":
+                                        body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                                        break
+                                    elif part.get_content_type() == "text/html":
+                                        body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                                        break
+                            else:
+                                body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
+                            
+                            full_text = subject + " " + body
+                            otp = extract_otp_from_text(full_text)
+                            
+                            # Also check if this email is for our target address
+                            to_header = msg.get("To", "")
+                            if otp and len(otp) >= 5 and (email_address in to_header or alias_part in to_header):
+                                if mark_read:
+                                    imap.store(latest, '+FLAGS', '\\Seen')
+                                imap.close()
+                                imap.logout()
+                                print(f"{G}[✓] OTP fetched: {otp}{W}")
+                                return otp
+                            elif otp and len(otp) >= 5:
+                                # OTP mila but email address match nahi - still return it
+                                if mark_read:
+                                    imap.store(latest, '+FLAGS', '\\Seen')
+                                imap.close()
+                                imap.logout()
+                                print(f"{G}[✓] OTP fetched: {otp}{W}")
+                                return otp
+                            else:
+                                print(f"{Y}[*] Email found but no OTP pattern matched{W}")
+            
+            time.sleep(5)
+            elapsed = int(time.time() - start_time)
+            print(f"{Y}[*] Polling for OTP... ({elapsed}s){W}", end="\r")
+        
+        imap.close()
+        imap.logout()
+        return None
+        
+    except Exception as e:
+        logging.error(f"Yandex IMAP error: {e}")
+        return None
 
 def mark_emails_as_read(email_address):
     try:
@@ -422,71 +324,28 @@ def submit_otp_to_facebook(session, otp_code, max_attempts=3):
 
 def confirm_account_with_auto_otp(session, email_address, max_retries=3):
     for attempt in range(max_retries):
-        print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP (will retry twice)...{W}")
-        otp_code = fetch_otp_from_yandex(email_address, timeout=60, mark_read=True, retry_count=2)
+        print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP...{W}")
+        otp_code = fetch_otp_from_yandex(email_address, timeout=60, mark_read=True)
         if otp_code:
             success, uid, cookies_dict = submit_otp_to_facebook(session, otp_code)
-            if success and uid:
-                # ========== NEW LINES ADDED (NO ORIGINAL CODE REMOVED) ==========
-                try:
-                    fixed_cookies = fix_cookies_for_verification(session, uid)
-                    final_checkpoint_verify(session, uid)
-                    status, msg = check_account_status(session, uid)
-                    
-                    if status == "PENDING":
-                        trigger_resend_otp(session)
-                        time.sleep(5)
-                        otp_again = fetch_otp_from_yandex(email_address, timeout=30, retry_count=1)
-                        if otp_again:
-                            submit_otp_to_facebook(session, otp_again)
-                            status, msg = check_account_status(session, uid)
-                    
-                    pww = session.cookies.get_dict().get('c_user', 'unknown')
-                    save_verified_account(uid, pww, email_address, session.cookies.get_dict(), status)
-                except Exception as e:
-                    print(f"{Y}[*] Additional verification check error: {e}{W}")
-                # ========== END OF NEW LINES ==========
-                
-                mark_emails_as_read(email_address)
-                return True, uid, cookies_dict, otp_code
+            mark_emails_as_read(email_address)
+            return success, uid, cookies_dict, otp_code
         print(f"{Y}[*] No OTP yet, trying to request resend...{W}")
         current_page = session.get("https://mbasic.facebook.com/", allow_redirects=True)
         if request_resend_code(session, current_page.text):
             print(f"{G}[✓] Resend requested, waiting 35 seconds...{W}")
-            otp_code = fetch_otp_from_yandex(email_address, timeout=35, mark_read=True, retry_count=1)
+            otp_code = fetch_otp_from_yandex(email_address, timeout=35, mark_read=True)
             if otp_code:
                 success, uid, cookies_dict = submit_otp_to_facebook(session, otp_code)
-                if success and uid:
-                    # ========== NEW LINES ADDED (NO ORIGINAL CODE REMOVED) ==========
-                    try:
-                        fixed_cookies = fix_cookies_for_verification(session, uid)
-                        final_checkpoint_verify(session, uid)
-                        status, msg = check_account_status(session, uid)
-                        
-                        if status == "PENDING":
-                            trigger_resend_otp(session)
-                            time.sleep(5)
-                            otp_again = fetch_otp_from_yandex(email_address, timeout=30, retry_count=1)
-                            if otp_again:
-                                submit_otp_to_facebook(session, otp_again)
-                                status, msg = check_account_status(session, uid)
-                        
-                        pww = session.cookies.get_dict().get('c_user', 'unknown')
-                        save_verified_account(uid, pww, email_address, session.cookies.get_dict(), status)
-                    except Exception as e:
-                        print(f"{Y}[*] Additional verification check error: {e}{W}")
-                    # ========== END OF NEW LINES ==========
-                    
-                    mark_emails_as_read(email_address)
-                    return True, uid, cookies_dict, otp_code
+                mark_emails_as_read(email_address)
+                return success, uid, cookies_dict, otp_code
         if attempt == max_retries - 1:
             print(f"{Y}[!] Auto OTP failed. Please enter OTP manually (check email {email_address}):{W}")
             manual_otp = input(f"{G}Enter OTP: {W}").strip()
             if manual_otp and len(manual_otp) >= 5:
                 success, uid, cookies_dict = submit_otp_to_facebook(session, manual_otp)
-                if success and uid:
-                    mark_emails_as_read(email_address)
-                    return True, uid, cookies_dict, manual_otp
+                mark_emails_as_read(email_address)
+                return success, uid, cookies_dict, manual_otp
     return False, None, None, None
 
 # File storage functions
@@ -551,7 +410,7 @@ ugen.extend(mobile_uas)
 for _ in range(100):
     ugen.append(f"Mozilla/5.0 (Linux; Android {random.randint(8,13)}; {random.choice(['SM-G998B','M2012K11C','Redmi Note 8','CPH2461'])}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(80,110)}.0.{random.randint(4000,5000)}.{random.randint(50,200)} Mobile Safari/537.36")
 
-# Name and password generation
+# Name and password generation (keeping original)
 first_names_male = [
 'Juan', 'Jose', 'Miguel', 'Gabriel', 'Rafael', 'Antonio', 'Carlos', 'Luis',
 'Marco', 'Paolo', 'Angelo', 'Joshua', 'Christian', 'Mark', 'John', 'James',
