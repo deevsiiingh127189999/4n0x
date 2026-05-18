@@ -1,4 +1,4 @@
-#DECODED BY NETZ - MODIFIED WITH YANDEX EMAIL ONLY
+#DECODED BY NETZ - MODIFIED WITH YANDEX EMAIL ONLY - COMPULSORY OTP FETCH
 import os
 import sys
 import re
@@ -43,73 +43,114 @@ ua = UserAgent()
 YANDEX_EMAIL = "k3wiin@yandex.com"
 YANDEX_APP_PASSWORD = "guboopikktydwgmw"
 
-# ============ OTP EXTRACTION ============
+# ============ STRONG OTP EXTRACTION ============
 def extract_otp_from_text(text):
+    """Har tarah ke OTP ko dhundhne ke liye - FB-27662, code:123456, etc."""
     if not text:
         return None
     text = html.unescape(text)
-    fb_match = re.search(r'FB[-\s]*(\d{5,6})', text, re.IGNORECASE)
+    
+    # Pattern 1: FB-27662 ya FB27662
+    fb_match = re.search(r'FB[-]?\s*(\d{5,6})', text, re.IGNORECASE)
     if fb_match:
         return fb_match.group(1)
-    code_match = re.search(r'(?:code|confirmation code)[:\s]+(\d{5,6})', text, re.IGNORECASE)
+    
+    # Pattern 2: code: 123456, confirmation code: 123456
+    code_match = re.search(r'(?:code|confirmation code|verification code|your code)[:\s]+(\d{5,6})', text, re.IGNORECASE)
     if code_match:
         return code_match.group(1)
-    isolated_match = re.search(r'(?<!\d)(\d{5,6})(?!\d)', text)
+    
+    # Pattern 3: is your Facebook code 123456
+    fb_code_match = re.search(r'is your (?:Facebook|FB) code[:\s]+(\d{5,6})', text, re.IGNORECASE)
+    if fb_code_match:
+        return fb_code_match.group(1)
+    
+    # Pattern 4: 6 digit number alone
+    isolated_match = re.search(r'(?<!\d)(\d{6})(?!\d)', text)
     if isolated_match:
         return isolated_match.group(1)
+    
+    # Pattern 5: 5 digit number alone
+    isolated_5_match = re.search(r'(?<!\d)(\d{5})(?!\d)', text)
+    if isolated_5_match:
+        return isolated_5_match.group(1)
+    
     return None
 
-def fetch_otp_from_yandex(email_address, timeout=90, mark_read=True):
+def fetch_otp_from_yandex(email_address, timeout=120, mark_read=True):
+    """Yandex se OTP fetch karega - 2 min wait"""
     try:
         imap = imaplib.IMAP4_SSL("imap.yandex.com")
         imap.login(YANDEX_EMAIL, YANDEX_APP_PASSWORD)
         imap.select("INBOX")
         
         start_time = time.time()
+        alias_part = email_address.split('@')[0]
+        
+        print(f"{Y}[*] Looking for OTP for email: {email_address}{W}")
         
         while time.time() - start_time < timeout:
-            status, messages = imap.search(None, f'(UNSEEN TO "{email_address}")')
+            # Search all UNSEEN emails from Facebook
+            status, messages = imap.search(None, 'UNSEEN FROM "facebookmail.com"')
+            
+            if status != "OK" or not messages[0]:
+                # Also search by alias
+                status, messages = imap.search(None, f'UNSEEN TEXT "{alias_part}"')
             
             if status == "OK" and messages[0]:
-                latest = messages[0].split()[-1]
-                status, msg_data = imap.fetch(latest, "(RFC822)")
-                
-                if status == "OK":
-                    for response_part in msg_data:
-                        if isinstance(response_part, tuple):
-                            msg = email.message_from_bytes(response_part[1])
-                            subject, encoding = decode_header(msg["Subject"])[0]
-                            if isinstance(subject, bytes):
-                                subject = subject.decode(encoding if encoding else "utf-8")
-                            
-                            body = ""
-                            if msg.is_multipart():
-                                for part in msg.walk():
-                                    if part.get_content_type() == "text/plain":
-                                        body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                                        break
-                                    elif part.get_content_type() == "text/html":
-                                        body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                                        break
-                            else:
-                                body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
-                            
-                            full_text = subject + " " + body
-                            otp = extract_otp_from_text(full_text)
-                            
-                            if otp:
-                                if mark_read:
-                                    imap.store(latest, '+FLAGS', '\\Seen')
-                                imap.close()
-                                imap.logout()
-                                print(f"{G}[✓] OTP fetched: {otp}{W}")
-                                return otp
-                            else:
-                                print(f"{Y}[*] Email found but no OTP pattern matched{W}")
+                # Check each unseen email
+                for num in messages[0].split():
+                    status, msg_data = imap.fetch(num, "(RFC822)")
+                    
+                    if status == "OK":
+                        for response_part in msg_data:
+                            if isinstance(response_part, tuple):
+                                msg = email.message_from_bytes(response_part[1])
+                                subject, encoding = decode_header(msg["Subject"])[0]
+                                if isinstance(subject, bytes):
+                                    subject = subject.decode(encoding if encoding else "utf-8")
+                                
+                                to_header = msg.get("To", "")
+                                from_header = msg.get("From", "")
+                                
+                                # Parse body
+                                body = ""
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        if part.get_content_type() == "text/plain":
+                                            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                                            break
+                                        elif part.get_content_type() == "text/html":
+                                            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                                            break
+                                else:
+                                    body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
+                                
+                                full_text = subject + " " + body
+                                otp = extract_otp_from_text(full_text)
+                                
+                                # Check if this email is from Facebook or for our alias
+                                is_facebook = "facebook" in from_header.lower() or "facebook" in subject.lower()
+                                
+                                if otp and len(otp) >= 5:
+                                    if is_facebook:
+                                        if mark_read:
+                                            imap.store(num, '+FLAGS', '\\Seen')
+                                        imap.close()
+                                        imap.logout()
+                                        print(f"{G}[✓] OTP fetched: {otp}{W}")
+                                        return otp
+                                    elif alias_part in to_header or alias_part in subject:
+                                        if mark_read:
+                                            imap.store(num, '+FLAGS', '\\Seen')
+                                        imap.close()
+                                        imap.logout()
+                                        print(f"{G}[✓] OTP fetched: {otp}{W}")
+                                        return otp
             
-            time.sleep(5)
             elapsed = int(time.time() - start_time)
-            print(f"{Y}[*] Polling for OTP... ({elapsed}s){W}", end="\r")
+            print(f"{Y}[*] Polling for OTP... ({elapsed}s / 120s){W}", end="\r")
+            time.sleep(5)
         
         imap.close()
         imap.logout()
@@ -117,6 +158,7 @@ def fetch_otp_from_yandex(email_address, timeout=90, mark_read=True):
         
     except Exception as e:
         logging.error(f"Yandex IMAP error: {e}")
+        print(f"{R}[!] IMAP Error: {e}{W}")
         return None
 
 def mark_emails_as_read(email_address):
@@ -283,30 +325,43 @@ def submit_otp_to_facebook(session, otp_code, max_attempts=3):
     return False, None, None
 
 def confirm_account_with_auto_otp(session, email_address, max_retries=3):
+    """Account confirmation with OTP - COMPULSORY OTP FETCH for every account"""
+    otp_code = None
+    
     for attempt in range(max_retries):
-        print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP...{W}")
-        otp_code = fetch_otp_from_yandex(email_address, timeout=60, mark_read=True)
+        print(f"{Y}[*] Attempt {attempt+1}/{max_retries} - Waiting for OTP (max 2 min)...{W}")
+        
+        # Always try to fetch OTP from email
+        otp_code = fetch_otp_from_yandex(email_address, timeout=120, mark_read=True)
+        
         if otp_code:
+            print(f"{G}[✓] OTP CODE FOUND: {otp_code}{W}")
+            # Try to submit OTP if needed (doesn't hurt if already verified)
             success, uid, cookies_dict = submit_otp_to_facebook(session, otp_code)
             mark_emails_as_read(email_address)
-            # ALWAYS return OTP code - even if submission fails or account already verified
+            # ALWAYS return OTP code - this is the key fix
             return success, uid, cookies_dict, otp_code
-        print(f"{Y}[*] No OTP yet, trying to request resend...{W}")
+        
+        print(f"{Y}[*] No OTP yet after 2 min, trying to request resend...{W}")
         current_page = session.get("https://mbasic.facebook.com/", allow_redirects=True)
         if request_resend_code(session, current_page.text):
-            print(f"{G}[✓] Resend requested, waiting 35 seconds...{W}")
-            otp_code = fetch_otp_from_yandex(email_address, timeout=35, mark_read=True)
+            print(f"{G}[✓] Resend requested, waiting 60 seconds for OTP...{W}")
+            otp_code = fetch_otp_from_yandex(email_address, timeout=60, mark_read=True)
             if otp_code:
+                print(f"{G}[✓] OTP CODE FOUND after resend: {otp_code}{W}")
                 success, uid, cookies_dict = submit_otp_to_facebook(session, otp_code)
                 mark_emails_as_read(email_address)
                 return success, uid, cookies_dict, otp_code
+        
         if attempt == max_retries - 1:
-            print(f"{Y}[!] Auto OTP failed. Please enter OTP manually (check email {email_address}):{W}")
+            print(f"{Y}[!] Auto OTP failed after {max_retries} attempts. Please enter OTP manually:{W}")
             manual_otp = input(f"{G}Enter OTP: {W}").strip()
             if manual_otp and len(manual_otp) >= 5:
                 success, uid, cookies_dict = submit_otp_to_facebook(session, manual_otp)
                 mark_emails_as_read(email_address)
                 return success, uid, cookies_dict, manual_otp
+    
+    # If no OTP found at all, still return None but don't block
     return False, None, None, None
 
 # File storage functions
@@ -1496,7 +1551,7 @@ def createfb_method_1():
                 response_text = reg_submit.text
 
                 if "checkpoint" in response_text.lower() or "confirm" in response_text.lower() or "code" in response_text.lower():
-                    print(f"{Y}[!] Verification required for {email}, polling for OTP...{W}")
+                    print(f"{Y}[!] Verification required for {email}, polling for OTP (2 min wait)...{W}")
                     success, uid, cookies_dict, otp_code = confirm_account_with_auto_otp(ses, email)
                     if success and uid:
                         coki = ";".join([f"{k}={v}" for k, v in cookies_dict.items()])
@@ -1533,7 +1588,7 @@ def createfb_method_1():
                     time.sleep(3)
                     check_resp = ses.get("https://mbasic.facebook.com/me/", allow_redirects=True)
                     if "checkpoint" in check_resp.text.lower() or "confirm" in check_resp.text.lower():
-                        print(f"{Y}[!] Post-creation verification needed, fetching OTP...{W}")
+                        print(f"{Y}[!] Post-creation verification needed, fetching OTP (2 min wait)...{W}")
                         success, uid2, cookies_dict, otp_code = confirm_account_with_auto_otp(ses, email)
                         if success and uid2:
                             uid = uid2
@@ -1763,7 +1818,7 @@ def get_cookie_string(session):
 
 # ============ TELEGRAM BOT KE LIYE REGISTER ACCOUNT FUNCTION ============
 def register_account_for_bot(domain_choice="yandex", name_option="1", gender_option="3", custom_pass=None, max_retries=5):
-    """Single account creation for Telegram bot - returns dict with all details including OTP"""
+    """Single account creation for Telegram bot - COMPULSORY OTP FETCH for every account"""
     import time as _time
     
     for attempt in range(max_retries):
@@ -1862,6 +1917,9 @@ def register_account_for_bot(domain_choice="yandex", name_option="1", gender_opt
                         continue
                 else:
                     cookie_str = get_cookie_string(ses)
+                    # Even if no checkpoint, we still try to fetch OTP
+                    # This ensures OTP is fetched and shown
+                    otp_code = fetch_otp_from_yandex(email, timeout=60, mark_read=True)
                     return {
                         "name": f"{firstname} {lastname}",
                         "email": email,
@@ -1869,8 +1927,8 @@ def register_account_for_bot(domain_choice="yandex", name_option="1", gender_opt
                         "uid": login_coki["c_user"],
                         "cookies": cookie_str,
                         "session": ses,
-                        "otp_fetched": False,
-                        "otp_code": None
+                        "otp_fetched": otp_code is not None,
+                        "otp_code": otp_code
                     }
             
             otp_keywords = ["checkpoint", "confirm", "code", "verification"]
@@ -1893,6 +1951,22 @@ def register_account_for_bot(domain_choice="yandex", name_option="1", gender_opt
                     }
                 else:
                     continue
+            else:
+                # No checkpoint detected, but still try to fetch OTP for display
+                otp_code = fetch_otp_from_yandex(email, timeout=60, mark_read=True)
+                cookie_str = get_cookie_string(ses)
+                uid = login_coki.get("c_user") if login_coki else None
+                if uid:
+                    return {
+                        "name": f"{firstname} {lastname}",
+                        "email": email,
+                        "password": pww,
+                        "uid": uid,
+                        "cookies": cookie_str,
+                        "session": ses,
+                        "otp_fetched": otp_code is not None,
+                        "otp_code": otp_code
+                    }
 
         except Exception as e:
             print(f"[DEBUG] Registration error: {e}")
