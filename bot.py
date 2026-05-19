@@ -727,7 +727,7 @@ async def cb_stop(callback: types.CallbackQuery):
         reply_markup=make_start_kb(uid)
     )
 
-# ============ MAIN CREATION FUNCTION - OTP COMPULSORY SHOW + FULL COOKIES ============
+# ============ MAIN CREATION FUNCTION - OTP COMPULSORY SHOW FIX ============
 async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     stop_flags[uid] = False
 
@@ -799,14 +799,14 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                         user_credits[uid] = max(0, user_credits.get(uid, 0) - 1)
                     credits_left = "" if uid == OWNER_ID else f"\n💳 Credits left: *{user_credits.get(uid, 0)}*"
                     
-                    # ========== OTP DISPLAY FIX - FORCE SHOW ==========
+                    # ========== OTP DISPLAY - COMPULSORY SHOW (FORCE) ==========
                     otp_code_value = result.get("otp_code")
                     print(f"[DEBUG] OTP from result: {otp_code_value}")
                     
-                    if otp_code_value and otp_code_value != "N/A" and otp_code_value != "None":
+                    # Agar OTP value hai toh show karo, nahi toh fallback message
+                    if otp_code_value:
                         otp_line = f"\n🔢 *OTP Used:* `{otp_code_value}`"
                     else:
-                        # Agar OTP nahi mila toh bhi kuch show karo
                         otp_line = "\n🔐 *Account Verified (OTP Auto-fetched)*"
                     # ========== END OTP FIX ==========
                     
