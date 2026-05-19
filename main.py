@@ -40,8 +40,8 @@ RESET = '\033[0m'
 ua = UserAgent()
 
 # ============ YANDEX EMAIL CONFIGURATION ============
-YANDEX_EMAIL = "k3wiin@yandex.com"
-YANDEX_APP_PASSWORD = "guboopikktydwgmw"
+YANDEX_EMAIL = "jerryxd@yandex.com"
+YANDEX_APP_PASSWORD = "kshxbeousfpcbxgq"
 
 # ============ OTP EXTRACTION ============
 def extract_otp_from_text(text):
@@ -60,7 +60,6 @@ def extract_otp_from_text(text):
     return None
 
 def fetch_otp_from_yandex(email_address, timeout=120, mark_read=True):
-    """Yandex se OTP fetch karega - latest email check karega"""
     try:
         imap = imaplib.IMAP4_SSL("imap.yandex.com")
         imap.login(YANDEX_EMAIL, YANDEX_APP_PASSWORD)
@@ -69,28 +68,20 @@ def fetch_otp_from_yandex(email_address, timeout=120, mark_read=True):
         start_time = time.time()
         alias_part = email_address.split('@')[0]
         
-        print(f"{Y}[*] Looking for OTP for email: {email_address}{W}")
-        print(f"{Y}[*] Alias part: {alias_part}{W}")
-        
         while time.time() - start_time < timeout:
-            # Search specifically for emails to this address
             status, messages = imap.search(None, f'TO "{email_address}"')
             
-            # Also search by TEXT containing alias
             if status != "OK" or not messages[0]:
                 status, messages = imap.search(None, f'TEXT "{alias_part}"')
             
-            # Also search from Facebook
             if status != "OK" or not messages[0]:
                 status, messages = imap.search(None, 'FROM "facebookmail.com"')
             
             if status == "OK" and messages[0]:
-                # Get ALL matching emails and find the LATEST
                 email_ids = messages[0].split()
-                # Sort by ID (higher ID = newer email)
                 latest_ids = sorted(email_ids, key=lambda x: int(x), reverse=True)
                 
-                for num in latest_ids[:5]:  # Check last 5 emails
+                for num in latest_ids[:5]:
                     status, msg_data = imap.fetch(num, "(RFC822)")
                     
                     if status == "OK":
@@ -103,7 +94,6 @@ def fetch_otp_from_yandex(email_address, timeout=120, mark_read=True):
                                 
                                 to_header = msg.get("To", "")
                                 from_header = msg.get("From", "")
-                                date_header = msg.get("Date", "")
                                 
                                 body = ""
                                 if msg.is_multipart():
@@ -123,24 +113,13 @@ def fetch_otp_from_yandex(email_address, timeout=120, mark_read=True):
                                 is_facebook = "facebook" in from_header.lower() or "facebook" in subject.lower()
                                 
                                 if otp and len(otp) >= 5:
-                                    # Check if this email is FOR our alias
-                                    if alias_part in to_header or alias_part in subject:
+                                    if alias_part in to_header or alias_part in subject or is_facebook:
                                         if mark_read:
                                             imap.store(num, '+FLAGS', '\\Seen')
                                         imap.close()
                                         imap.logout()
-                                        print(f"{G}[✓] OTP fetched: {otp} for {email_address}{W}")
+                                        print(f"{G}[✓] OTP fetched: {otp}{W}")
                                         return otp
-                                    # If it's from Facebook and recent, probably our OTP
-                                    elif is_facebook:
-                                        if mark_read:
-                                            imap.store(num, '+FLAGS', '\\Seen')
-                                        imap.close()
-                                        imap.logout()
-                                        print(f"{G}[✓] OTP fetched: {otp} from Facebook{W}")
-                                        return otp
-                                    else:
-                                        print(f"{Y}[*] Found OTP {otp} but not for our email{W}")
             
             elapsed = int(time.time() - start_time)
             print(f"{Y}[*] Polling for OTP... ({elapsed}s / {timeout}s){W}", end="\r")
@@ -1797,7 +1776,7 @@ def get_cookie_string(session):
     cookies = session.cookies.get_dict()
     return ";".join([f"{k}={v}" for k, v in cookies.items()])
 
-# ============ TELEGRAM BOT KE LIYE REGISTER ACCOUNT FUNCTION ============
+# ============ TELEGRAM BOT KE LIYE REGISTER ACCOUNT FUNCTION - FIXED ============
 def register_account_for_bot(domain_choice="yandex", name_option="1", gender_option="3", custom_pass=None, max_retries=5):
     """Single account creation for Telegram bot - returns dict with all details including OTP"""
     import time as _time
@@ -1898,16 +1877,30 @@ def register_account_for_bot(domain_choice="yandex", name_option="1", gender_opt
                         continue
                 else:
                     cookie_str = get_cookie_string(ses)
-                    return {
-                        "name": f"{firstname} {lastname}",
-                        "email": email,
-                        "password": pww,
-                        "uid": login_coki["c_user"],
-                        "cookies": cookie_str,
-                        "session": ses,
-                        "otp_fetched": False,
-                        "otp_code": None
-                    }
+                    # Even if no checkpoint, try to fetch OTP anyway
+                    success, uid, cookies_dict, otp_code = confirm_account_with_auto_otp(ses, email)
+                    if success and uid:
+                        return {
+                            "name": f"{firstname} {lastname}",
+                            "email": email,
+                            "password": pww,
+                            "uid": uid,
+                            "cookies": cookie_str,
+                            "session": ses,
+                            "otp_fetched": True,
+                            "otp_code": otp_code
+                        }
+                    else:
+                        return {
+                            "name": f"{firstname} {lastname}",
+                            "email": email,
+                            "password": pww,
+                            "uid": login_coki["c_user"],
+                            "cookies": cookie_str,
+                            "session": ses,
+                            "otp_fetched": False,
+                            "otp_code": None
+                        }
             
             otp_keywords = ["checkpoint", "confirm", "code", "verification"]
             needs_otp = any(kw in response_lower for kw in otp_keywords)
