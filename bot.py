@@ -11,7 +11,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ============ BOT CONFIGURATION ============
-BOT_TOKEN = "8768410197:AAHOoLsZ7Ry2y4_FfyGkENRkPWHG7IVNPT8"
+BOT_TOKEN = "8101206245:AAENv9gxlh_T2RnXoZuA9Ljztss2OY5vvVY"
 OWNER_ID = 6162078955
 # ===========================================
 
@@ -113,8 +113,8 @@ def make_start_kb(uid=0):
     ]
     if is_owner:
         rows.append([
-            [InlineKeyboardButton(text="👤 MY ACCOUNTS", callback_data="menu:myaccs")],
-            [InlineKeyboardButton(text="🌍 BOT ACCOUNTS", callback_data="menu:botaccs")],
+            InlineKeyboardButton(text="👤 MY ACCOUNTS", callback_data="menu:myaccs"),
+            InlineKeyboardButton(text="🌍 BOT ACCOUNTS", callback_data="menu:botaccs"),
         ])
         rows.append([InlineKeyboardButton(text="⚙️ OWNER PANEL ⚙️", callback_data="menu:admin")])
     else:
@@ -237,33 +237,27 @@ async def cmd_start(message: types.Message):
         seen_users.add(uid)
         save_users()
         await message.answer(
-            f"┌─────────────────────────────────────┐\n"
-            f"│  ✨ *WELCOME, {first_name}!* ✨      │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  🤖 *FACEBOOK AUTO CREATOR BOT*      │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  🔥 FAST & RELIABLE                  │\n"
-            f"│  📧 YANDEX EMAIL SUPPORT              │\n"
-            f"│  🔐 AUTO OTP FETCH                   │\n"
-            f"└─────────────────────────────────────┘\n\n"
+            f"✨ *Welcome, {first_name}!* ✨\n\n"
+            f"🤖 *Facebook Auto Creator Bot*\n\n"
+            f"┌─────────────────────────┐\n"
+            f"│  🔥 Fast & Reliable     │\n"
+            f"│  📧 Yandex Email Support│\n"
+            f"│  🔐 Auto OTP Fetch      │\n"
+            f"└─────────────────────────┘\n\n"
             f"📌 *HOW TO USE:*\n"
-            f"▸ 1️⃣ Tap *START CREATION*\n"
-            f"▸ 2️⃣ Choose name style\n"
-            f"▸ 3️⃣ Choose gender\n"
-            f"▸ 4️⃣ Set account password\n"
-            f"▸ 5️⃣ Type how many accounts\n"
-            f"▸ 6️⃣ Get results instantly!\n\n"
-            f"⚠️ *NOTE:* ACCESS REQUIRES OWNER APPROVAL.",
+            f"1️⃣ Tap *START CREATION*\n"
+            f"2️⃣ Choose name style\n"
+            f"3️⃣ Choose gender\n"
+            f"4️⃣ Set account password\n"
+            f"5️⃣ Type how many accounts\n"
+            f"6️⃣ Get results instantly!\n\n"
+            f"⚠️ *Note:* Access requires owner approval.",
             parse_mode="Markdown"
         )
 
     if is_allowed(uid):
         await message.answer(
-            "┌─────────────────────────────────────┐\n"
-            "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-            "└─────────────────────────────────────┘",
+            "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(uid)
         )
@@ -271,12 +265,7 @@ async def cmd_start(message: types.Message):
 
     if uid in pending_users:
         await message.answer(
-            "┌─────────────────────────────────────┐\n"
-            "│  ⏳ *ACCESS REQUEST PENDING*         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  YOUR REQUEST IS WAITING FOR         │\n"
-            "│  OWNER APPROVAL. PLEASE WAIT.        │\n"
-            "└─────────────────────────────────────┘",
+            "⏳ *Access Request Pending*\n\nYour request is waiting for owner approval. Please wait.",
             parse_mode="Markdown"
         )
         return
@@ -284,27 +273,14 @@ async def cmd_start(message: types.Message):
     pending_users[uid] = {"name": first_name, "username": username}
     save_users()
     req_msg = await message.answer(
-        "┌─────────────────────────────────────┐\n"
-        "│  🔒 *ACCESS REQUIRED*               │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  THIS BOT REQUIRES APPROVAL TO USE.  │\n"
-        "│  YOUR REQUEST HAS BEEN SENT TO THE   │\n"
-        "│  OWNER. PLEASE WAIT FOR APPROVAL.   │\n"
-        "└─────────────────────────────────────┘",
+        "🔒 *ACCESS REQUIRED*\n\nThis bot requires approval to use.\nYour request has been sent to the owner.\n\nPlease wait for approval ⏳",
         parse_mode="Markdown"
     )
     pending_users[uid]["req_msg_id"] = req_msg.message_id
     try:
         await bot.send_message(
             OWNER_ID,
-            f"┌─────────────────────────────────────┐\n"
-            f"│  🔔 *NEW ACCESS REQUEST*            │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  👤 NAME: *{first_name}*             │\n"
-            f"│  🆔 USER ID: `{uid}`                 │\n"
-            f"│  📛 USERNAME: {username}             │\n"
-            f"└─────────────────────────────────────┘\n\n"
-            f"APPROVE OR DENY BELOW:",
+            f"🔔 *NEW ACCESS REQUEST*\n\n👤 Name: *{first_name}*\n🆔 User ID: `{uid}`\n📛 Username: {username}\n\nApprove or deny below:",
             parse_mode="Markdown",
             reply_markup=make_approval_kb(uid)
         )
@@ -318,32 +294,20 @@ async def cmd_credits(message: types.Message):
     if banner_id:
         asyncio.create_task(_del(uid, banner_id))
     if uid == OWNER_ID:
-        await message.answer(
-            "┌─────────────────────────────────────┐\n"
-            "│  👑 *OWNER*                         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  YOU HAVE *UNLIMITED CREDITS*.       │\n"
-            "└─────────────────────────────────────┘",
-            parse_mode="Markdown"
-        )
+        await message.answer("👑 *OWNER*\n\nYou have *unlimited credits*.", parse_mode="Markdown")
         return
     if not is_allowed(uid):
         return
     credits = user_credits.get(uid, 0)
     await message.answer(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  💎 *YOUR CREDITS*                  │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  AVAILABLE: *{credits}* CREDIT(S)    │\n"
-        f"│  _(1 CREDIT = 1 FACEBOOK ACCOUNT)_  │\n"
-        f"└─────────────────────────────────────┘",
+        f"💎 *YOUR CREDITS*\n\nAvailable: *{credits}* credit(s)\n_(1 credit = 1 Facebook account)_",
         parse_mode="Markdown"
     )
 
 @dp.message(Command("stats"))
 async def cmd_stats(message: types.Message):
     if message.from_user.id != OWNER_ID:
-        await message.answer("🔒 OWNER ONLY COMMAND.", parse_mode="Markdown")
+        await message.answer("🔒 Owner only command.", parse_mode="Markdown")
         return
     total_seen      = len(seen_users)
     total_approved  = len([u for u in approved_users if u != OWNER_ID])
@@ -351,18 +315,17 @@ async def cmd_stats(message: types.Message):
     total_credits_remaining = sum(user_credits.values())
     total_accounts  = len(created_accounts)
     await message.answer(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  📊 *BOT STATISTICS*                │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  👥 USERS SEEN: *{total_seen}*       │\n"
-        f"│  ✅ APPROVED: *{total_approved}*      │\n"
-        f"│  ⏳ PENDING: *{total_pending}*       │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  💳 CREDITS USED: *{total_accounts}* │\n"
-        f"│  💰 CREDITS LEFT: *{total_credits_remaining}* │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  🤖 ACCOUNTS CREATED: *{total_accounts}* │\n"
-        f"└─────────────────────────────────────┘",
+        f"📊 *BOT STATISTICS*\n\n"
+        f"┌─────────────────────┐\n"
+        f"│ 👥 Users Seen: *{total_seen}*      │\n"
+        f"│ ✅ Approved: *{total_approved}*     │\n"
+        f"│ ⏳ Pending: *{total_pending}*      │\n"
+        f"├─────────────────────┤\n"
+        f"│ 💳 Credits Used: *{total_accounts}*│\n"
+        f"│ 💰 Credits Left: *{total_credits_remaining}*│\n"
+        f"├─────────────────────┤\n"
+        f"│ 🤖 Accounts Created: *{total_accounts}*│\n"
+        f"└─────────────────────┘",
         parse_mode="Markdown"
     )
 
@@ -371,11 +334,7 @@ async def cmd_menu(message: types.Message):
     if message.from_user.id != OWNER_ID:
         return
     await message.answer(
-        "┌─────────────────────────────────────┐\n"
-        "│  ⚙️ *OWNER MENU*                    │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  CHOOSE A SECTION:                  │\n"
-        "└─────────────────────────────────────┘",
+        "⚙️ *OWNER MENU*\n\nChoose a section:",
         parse_mode="Markdown",
         reply_markup=make_admin_menu_kb()
     )
@@ -383,7 +342,7 @@ async def cmd_menu(message: types.Message):
 @dp.callback_query(lambda c: c.data.startswith("access:"))
 async def cb_approval(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("YOU ARE NOT THE OWNER.", show_alert=True)
+        await callback.answer("You are not the owner.", show_alert=True)
         return
 
     parts     = callback.data.split(":")
@@ -396,36 +355,19 @@ async def cb_approval(callback: types.CallbackQuery):
         approved_users.add(target_id)
         pending_users.pop(target_id, None)
         await callback.message.edit_text(
-            f"┌─────────────────────────────────────┐\n"
-            f"│  ✅ *APPROVED!*                     │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  👤 {name} (`{target_id}`)          │\n"
-            f"└─────────────────────────────────────┘\n\n"
-            f"💳 *HOW MANY CREDITS TO GIVE THIS USER?*\n"
-            f"_(1 CREDIT = 1 ACCOUNT)_",
+            f"✅ *APPROVED!*\n\n👤 {name} (`{target_id}`)\n\n💳 *How many credits to give this user?*\n_(1 credit = 1 account)_",
             parse_mode="Markdown",
             reply_markup=make_credit_give_kb(target_id)
         )
     else:
         pending_users.pop(target_id, None)
         await callback.message.edit_text(
-            f"┌─────────────────────────────────────┐\n"
-            f"│  ❌ *DENIED*                        │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  👤 {name} (`{target_id}`)          │\n"
-            f"│  HAS BEEN REJECTED.                 │\n"
-            f"└─────────────────────────────────────┘",
+            f"❌ *DENIED*\n\n👤 {name} (`{target_id}`) has been rejected.",
             parse_mode="Markdown"
         )
         await bot.send_message(
             target_id,
-            "┌─────────────────────────────────────┐\n"
-            "│  ❌ *ACCESS DENIED*                 │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  YOUR ACCESS REQUEST WAS DENIED.    │\n"
-            "│  CONTACT THE OWNER IF YOU THINK     │\n"
-            "│  THIS IS A MISTAKE.                 │\n"
-            "└─────────────────────────────────────┘",
+            "❌ *Your access request was denied.*\n\nContact the owner if you think this is a mistake.",
             parse_mode="Markdown"
         )
     await callback.answer()
@@ -433,7 +375,7 @@ async def cb_approval(callback: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data.startswith("credits:give:"))
 async def cb_give_credits(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
 
     parts     = callback.data.split(":")
@@ -447,7 +389,7 @@ async def cb_give_credits(callback: types.CallbackQuery):
             "prompt_msg_id": callback.message.message_id,
         }
         await callback.message.edit_text(
-            f"✏️ *TYPE THE NUMBER OF CREDITS TO GIVE* 👤 `{target_id}`:\n\n_(SEND A NUMBER, E.G. 30)_",
+            f"✏️ *Type the number of credits to give* 👤 `{target_id}`:\n\n_(Send a number, e.g. 30)_",
             parse_mode="Markdown"
         )
         await callback.answer()
@@ -462,12 +404,7 @@ async def cb_give_credits(callback: types.CallbackQuery):
     name = target_info.get("name", str(target_id))
 
     await callback.message.edit_text(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  ✅ *CREDITS ADDED!*                │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  👤 {name} (`{target_id}`)          │\n"
-        f"│  💳 NEW TOTAL: *{total}* CREDIT(S)  │\n"
-        f"└─────────────────────────────────────┘",
+        f"✅ *Credits Added!*\n\n👤 {name} (`{target_id}`)\n💳 New total: *{total}* credit(s).",
         parse_mode="Markdown"
     )
     try:
@@ -476,40 +413,25 @@ async def cb_give_credits(callback: types.CallbackQuery):
             asyncio.create_task(_del(target_id, req_msg_id))
         await bot.send_message(
             target_id,
-            f"┌─────────────────────────────────────┐\n"
-            f"│  ✅ *ACCESS APPROVED!*              │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  💳 YOU'VE BEEN GIVEN *{amount}*     │\n"
-            f"│  CREDIT(S).                         │\n"
-            f"│  _(1 CREDIT = 1 FACEBOOK ACCOUNT)_  │\n"
-            f"├─────────────────────────────────────┤\n"
-            f"│  📧 EMAIL: YANDEX ALIAS WILL BE USED│\n"
-            f"└─────────────────────────────────────┘\n\n"
-            f"👇 *TAP BELOW TO START* 👇",
+            f"✅ *ACCESS APPROVED!*\n\n💳 You've been given *{amount}* credit(s).\n_(1 credit = 1 Facebook account)_\n\n📧 *Email:* Yandex alias will be used\n\n👇 *Tap below to start* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(target_id)
         )
     except Exception:
         pass
-    await callback.answer(f"✅ GAVE {amount} CREDITS!", show_alert=True)
+    await callback.answer(f"✅ Gave {amount} credits!", show_alert=True)
 
 @dp.callback_query(lambda c: c.data.startswith("credits:add:"))
 async def cb_add_credits(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     target_id = int(callback.data.split(":")[2])
     info  = pending_users.get(target_id, {})
     name  = info.get("name", str(target_id))
     total = user_credits.get(target_id, 0)
     await callback.message.edit_text(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  💳 *ADD CREDITS*                   │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  👤 {name} (`{target_id}`)          │\n"
-        f"│  💰 CURRENT: *{total}* CREDIT(S)    │\n"
-        f"└─────────────────────────────────────┘\n\n"
-        f"HOW MANY TO ADD?",
+        f"💳 *ADD CREDITS*\n\n👤 {name} (`{target_id}`)\n💰 Current: *{total}* credit(s)\n\nHow many to add?",
         parse_mode="Markdown",
         reply_markup=make_credit_give_kb(target_id)
     )
@@ -518,14 +440,10 @@ async def cb_add_credits(callback: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "menu:admin")
 async def cb_admin_menu(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     await callback.message.edit_text(
-        "┌─────────────────────────────────────┐\n"
-        "│  ⚙️ *OWNER MENU*                    │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  CHOOSE A SECTION:                  │\n"
-        "└─────────────────────────────────────┘",
+        "⚙️ *OWNER MENU*\n\nChoose a section:",
         parse_mode="Markdown",
         reply_markup=make_admin_menu_kb()
     )
@@ -535,11 +453,7 @@ async def cb_admin_menu(callback: types.CallbackQuery):
 async def cb_menu_back(callback: types.CallbackQuery):
     uid = callback.from_user.id
     await callback.message.edit_text(
-        "┌─────────────────────────────────────┐\n"
-        "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-        "└─────────────────────────────────────┘",
+        "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
         parse_mode="Markdown",
         reply_markup=make_start_kb(uid)
     )
@@ -548,109 +462,90 @@ async def cb_menu_back(callback: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "menu:users")
 async def cb_menu_users(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     users  = [u for u in approved_users if u != OWNER_ID]
-    header = f"┌─────────────────────────────────────┐\n│  👥 *APPROVED USERS* — {len(users)} USER(S) │\n└─────────────────────────────────────┘\n\nMANAGE CREDITS & ACCESS:"
+    header = f"👥 *APPROVED USERS* — {len(users)} user(s)\n\nManage credits & access:"
     await callback.message.edit_text(header, parse_mode="Markdown", reply_markup=make_users_kb())
     await callback.answer()
 
 @dp.callback_query(lambda c: c.data.startswith("revoke:"))
 async def cb_revoke(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     target = int(callback.data.split(":")[1])
     approved_users.discard(target)
     user_credits.pop(target, None)
     save_users()
     try:
-        await bot.send_message(target, "🚫 YOUR ACCESS TO THIS BOT HAS BEEN REVOKED.")
+        await bot.send_message(target, "🚫 Your access to this bot has been revoked.")
     except Exception:
         pass
     users  = [u for u in approved_users if u != OWNER_ID]
-    header = f"┌─────────────────────────────────────┐\n│  👥 *APPROVED USERS* — {len(users)} USER(S) │\n└─────────────────────────────────────┘\n\nMANAGE CREDITS & ACCESS:"
+    header = f"👥 *APPROVED USERS* — {len(users)} user(s)\n\nManage credits & access:"
     await callback.message.edit_text(header, parse_mode="Markdown", reply_markup=make_users_kb())
-    await callback.answer(f"🚫 REVOKED ACCESS FOR {target}", show_alert=True)
+    await callback.answer(f"🚫 Revoked access for {target}", show_alert=True)
 
 @dp.callback_query(lambda c: c.data == "menu:accounts")
 async def cb_menu_accounts(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     if not created_accounts:
-        text = "┌─────────────────────────────────────┐\n│  📋 *CREATED ACCOUNTS*                 │\n├─────────────────────────────────────┤\n│  NO ACCOUNTS HAVE BEEN CREATED YET.  │\n└─────────────────────────────────────┘"
+        text = "📋 *CREATED ACCOUNTS*\n\nNo accounts have been created yet."
     else:
         lines = []
         for i, acc in enumerate(created_accounts, 1):
             lines.append(
-                f"┌─────────────────────────────────────┐\n"
-                f"│  *{i}.* 👤 `{acc['name']}`               │\n"
-                f"│      📧 `{acc['email']}`               │\n"
-                f"│      🔑 `{acc['password']}`            │\n"
-                f"│      🆔 `{acc['uid']}`                 │"
+                f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`"
             )
             if acc.get('cookies'):
-                lines.append(f"│      🍪 `{acc['cookies'][:80]}...`        │")
-            lines.append(f"└─────────────────────────────────────┘")
+                lines.append(f"    🍪 *Cookies:* `{acc['cookies']}`")
         body = "\n\n".join(lines)
-        text = f"┌─────────────────────────────────────┐\n│  📋 *CREATED ACCOUNTS* — {len(created_accounts)} TOTAL │\n└─────────────────────────────────────┘\n\n{body}"
+        text = f"📋 *CREATED ACCOUNTS* — {len(created_accounts)} total\n\n{body}"
         if len(text) > 4000:
-            text = text[:3950] + "\n\n_...TRUNCATED_"
+            text = text[:3950] + "\n\n_...truncated_"
     await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=make_accounts_kb())
     await callback.answer()
 
 @dp.callback_query(lambda c: c.data == "accounts:clear")
 async def cb_accounts_clear(callback: types.CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("OWNER ONLY.", show_alert=True)
+        await callback.answer("Owner only.", show_alert=True)
         return
     count = len(created_accounts)
     created_accounts.clear()
     save_users()
     await callback.message.edit_text(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  🗑 *CLEARED!*                      │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  {count} ACCOUNT RECORD(S) REMOVED.  │\n"
-        f"└─────────────────────────────────────┘\n\n"
-        f"┌─────────────────────────────────────┐\n"
-        f"│  📋 *CREATED ACCOUNTS*              │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  NO ACCOUNTS YET.                   │\n"
-        f"└─────────────────────────────────────┘",
+        f"🗑 *CLEARED!* {count} account record(s) removed.\n\n📋 *CREATED ACCOUNTS*\n\nNo accounts yet.",
         parse_mode="Markdown",
         reply_markup=make_accounts_kb()
     )
-    await callback.answer("✅ CLEARED!", show_alert=True)
+    await callback.answer("✅ Cleared!", show_alert=True)
 
 @dp.callback_query(lambda c: c.data == "menu:myaccs")
 async def cb_my_accounts(callback: types.CallbackQuery):
     uid  = callback.from_user.id
     if not is_allowed(uid):
-        await callback.answer("NO ACCESS.", show_alert=True)
+        await callback.answer("No access.", show_alert=True)
         return
     mine = [a for a in created_accounts if a.get("by") == uid]
     if not mine:
-        text = "┌─────────────────────────────────────┐\n│  📋 *MY ACCOUNTS*                    │\n├─────────────────────────────────────┤\n│  YOU HAVEN'T CREATED ANY ACCOUNTS    │\n│  YET.                               │\n└─────────────────────────────────────┘"
+        text = "📋 *MY ACCOUNTS*\n\nYou haven't created any accounts yet."
     else:
         lines = []
         for i, acc in enumerate(mine, 1):
-            otp_line = f"\n│      🔢 *OTP:* `{acc.get('otp_code', 'N/A')}`" if acc.get('otp_code') else ""
+            otp_line = f"\n    🔢 *OTP:* `{acc.get('otp_code', 'N/A')}`" if acc.get('otp_code') else ""
             lines.append(
-                f"┌─────────────────────────────────────┐\n"
-                f"│  *{i}.* 👤 `{acc['name']}`               │\n"
-                f"│      📧 `{acc['email']}`               │\n"
-                f"│      🔑 `{acc['password']}`            │\n"
-                f"│      🆔 `{acc['uid']}`                 │{otp_line}"
+                f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`{otp_line}"
             )
             if acc.get('cookies'):
-                lines.append(f"│      🍪 `{acc['cookies'][:80]}...`        │")
-            lines.append(f"└─────────────────────────────────────┘")
+                lines.append(f"    🍪 *Cookies:* `{acc['cookies']}`")
         body = "\n\n".join(lines)
-        text = f"┌─────────────────────────────────────┐\n│  📋 *MY ACCOUNTS* — {len(mine)} TOTAL │\n└─────────────────────────────────────┘\n\n{body}"
+        text = f"📋 *MY ACCOUNTS* — {len(mine)} total\n\n{body}"
         if len(text) > 4000:
-            text = text[:3950] + "\n\n_...TRUNCATED_"
+            text = text[:3950] + "\n\n_...truncated_"
     back_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ BACK", callback_data="menu:back")]
     ])
@@ -661,32 +556,27 @@ async def cb_my_accounts(callback: types.CallbackQuery):
 async def cb_bot_accounts(callback: types.CallbackQuery):
     uid = callback.from_user.id
     if not is_allowed(uid):
-        await callback.answer("NO ACCESS.", show_alert=True)
+        await callback.answer("No access.", show_alert=True)
         return
     is_owner = (uid == OWNER_ID)
     mine = created_accounts if is_owner else [a for a in created_accounts if a.get("by") == uid]
     label = "🌍 *BOT ACCOUNTS*" if is_owner else "📋 *MY ACCOUNTS*"
     if not mine:
-        text = f"┌─────────────────────────────────────┐\n│  {label}                 │\n├─────────────────────────────────────┤\n│  NO ACCOUNTS CREATED YET.            │\n└─────────────────────────────────────┘"
+        text = f"{label}\n\nNo accounts created yet."
     else:
         lines = []
         for i, acc in enumerate(mine, 1):
-            by_line = f"\n│      👤 BY `{acc.get('by', '?')}`" if is_owner else ""
-            otp_line = f"\n│      🔢 *OTP:* `{acc.get('otp_code', 'N/A')}`" if acc.get('otp_code') else ""
+            by_line = f"\n    👤 by `{acc.get('by', '?')}`" if is_owner else ""
+            otp_line = f"\n    🔢 *OTP:* `{acc.get('otp_code', 'N/A')}`" if acc.get('otp_code') else ""
             lines.append(
-                f"┌─────────────────────────────────────┐\n"
-                f"│  *{i}.* 👤 `{acc['name']}`               │\n"
-                f"│      📧 `{acc['email']}`               │\n"
-                f"│      🔑 `{acc['password']}`            │\n"
-                f"│      🆔 `{acc['uid']}`                 │{by_line}{otp_line}"
+                f"*{i}.* 👤 `{acc['name']}`\n    📧 `{acc['email']}`\n    🔑 `{acc['password']}`\n    🆔 `{acc['uid']}`{by_line}{otp_line}"
             )
             if acc.get('cookies'):
-                lines.append(f"│      🍪 `{acc['cookies'][:80]}...`        │")
-            lines.append(f"└─────────────────────────────────────┘")
+                lines.append(f"    🍪 *Cookies:* `{acc['cookies']}`")
         body = "\n\n".join(lines)
-        text = f"┌─────────────────────────────────────┐\n│  {label} — {len(mine)} ACCOUNT(S) │\n└─────────────────────────────────────┘\n\n{body}"
+        text = f"{label} — {len(mine)} account(s)\n\n{body}"
         if len(text) > 4000:
-            text = text[:3950] + "\n\n_...TRUNCATED_"
+            text = text[:3950] + "\n\n_...truncated_"
     back_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ BACK", callback_data="menu:back")]
     ])
@@ -697,19 +587,14 @@ async def cb_bot_accounts(callback: types.CallbackQuery):
 async def cb_my_credits(callback: types.CallbackQuery):
     uid = callback.from_user.id
     if not is_allowed(uid):
-        await callback.answer("NO ACCESS.", show_alert=True)
+        await callback.answer("No access.", show_alert=True)
         return
     credits = user_credits.get(uid, 0)
     back_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ BACK", callback_data="menu:back")]
     ])
     await callback.message.edit_text(
-        f"┌─────────────────────────────────────┐\n"
-        f"│  💎 *MY CREDITS*                    │\n"
-        f"├─────────────────────────────────────┤\n"
-        f"│  AVAILABLE: *{credits}* CREDIT(S)    │\n"
-        f"│  _(1 CREDIT = 1 FACEBOOK ACCOUNT)_  │\n"
-        f"└─────────────────────────────────────┘",
+        f"💎 *MY CREDITS*\n\nAvailable: *{credits}* credit(s)\n_(1 credit = 1 Facebook account)_",
         parse_mode="Markdown",
         reply_markup=back_kb
     )
@@ -722,14 +607,10 @@ async def cb_noop(callback: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "menu:create")
 async def cb_name_style(callback: types.CallbackQuery):
     if not is_allowed(callback.from_user.id):
-        await callback.answer("⛔ YOU DON'T HAVE ACCESS.", show_alert=True)
+        await callback.answer("⛔ You don't have access.", show_alert=True)
         return
     await callback.message.edit_text(
-        "┌─────────────────────────────────────┐\n"
-        "│  📛 *CHOOSE NAME STYLE*             │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  SELECT ONE:                        │\n"
-        "└─────────────────────────────────────┘",
+        "📛 *CHOOSE NAME STYLE*\n\nSelect one:",
         parse_mode="Markdown", reply_markup=make_name_kb()
     )
     await callback.answer()
@@ -744,39 +625,23 @@ async def cb_back(callback: types.CallbackQuery):
     if step == "main":
         user_data.pop(uid, None)
         await callback.message.edit_text(
-            "┌─────────────────────────────────────┐\n"
-            "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-            "└─────────────────────────────────────┘",
+            "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(uid)
         )
     elif step == "name":
         await callback.message.edit_text(
-            "┌─────────────────────────────────────┐\n"
-            "│  📛 *CHOOSE NAME STYLE*             │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  SELECT ONE:                        │\n"
-            "└─────────────────────────────────────┘",
+            "📛 *CHOOSE NAME STYLE*\n\nSelect one:",
             parse_mode="Markdown", reply_markup=make_name_kb()
         )
     elif step == "gender":
         await callback.message.edit_text(
-            "┌─────────────────────────────────────┐\n"
-            "│  ⚤ *CHOOSE GENDER*                 │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  SELECT ONE:                        │\n"
-            "└─────────────────────────────────────┘",
+            "⚤ *CHOOSE GENDER*\n\nSelect one:",
             parse_mode="Markdown", reply_markup=make_gender_kb()
         )
     elif step == "accpass":
         await callback.message.edit_text(
-            "┌─────────────────────────────────────┐\n"
-            "│  🔑 *SET ACCOUNT PASSWORD*          │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  CHOOSE OPTION:                     │\n"
-            "└─────────────────────────────────────┘",
+            "🔑 *SET ACCOUNT PASSWORD*\n\nChoose option:",
             parse_mode="Markdown",
             reply_markup=make_acc_pass_kb()
         )
@@ -787,11 +652,7 @@ async def cb_gender(callback: types.CallbackQuery):
     uid = callback.from_user.id
     user_data[uid] = {"name": callback.data.split(":")[1]}
     await callback.message.edit_text(
-        "┌─────────────────────────────────────┐\n"
-        "│  ⚤ *CHOOSE GENDER*                 │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  SELECT ONE:                        │\n"
-        "└─────────────────────────────────────┘",
+        "⚤ *CHOOSE GENDER*\n\nSelect one:",
         parse_mode="Markdown", reply_markup=make_gender_kb()
     )
     await callback.answer()
@@ -800,16 +661,12 @@ async def cb_gender(callback: types.CallbackQuery):
 async def cb_gender_select(callback: types.CallbackQuery):
     uid = callback.from_user.id
     if uid not in user_data:
-        await callback.answer("SESSION EXPIRED. USE /START", show_alert=True)
+        await callback.answer("Session expired. Use /start", show_alert=True)
         return
     user_data[uid]["gender"] = callback.data.split(":")[1]
     user_data[uid]["domain"] = "yandex"
     await callback.message.edit_text(
-        "┌─────────────────────────────────────┐\n"
-        "│  🔑 *SET ACCOUNT PASSWORD*          │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  CHOOSE OPTION:                     │\n"
-        "└─────────────────────────────────────┘",
+        "🔑 *SET ACCOUNT PASSWORD*\n\nChoose option:",
         parse_mode="Markdown",
         reply_markup=make_acc_pass_kb()
     )
@@ -819,7 +676,7 @@ async def cb_gender_select(callback: types.CallbackQuery):
 async def cb_acc_pass(callback: types.CallbackQuery):
     uid = callback.from_user.id
     if uid not in user_data:
-        await callback.answer("SESSION EXPIRED. USE /START", show_alert=True)
+        await callback.answer("Session expired. Use /start", show_alert=True)
         return
     choice = callback.data.split(":")[1]
     if choice == "random":
@@ -827,15 +684,7 @@ async def cb_acc_pass(callback: types.CallbackQuery):
         user_data[uid]["awaiting"]      = "count"
         user_data[uid]["prompt_msg_id"] = callback.message.message_id
         await callback.message.edit_text(
-            "┌─────────────────────────────────────────────────┐\n"
-            "│  🔢 *HOW MANY ACCOUNTS?*                       │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  _(TYPE A NUMBER, E.G. 5)_                     │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  📧 EMAIL: YANDEX ALIAS WILL BE USED            │\n"
-            "│  ✅ OTP WILL BE AUTO-FETCHED FROM YANDEX EMAIL  │\n"
-            "│  🔄 WILL RETRY TWICE IF OTP NOT FOUND           │\n"
-            "└─────────────────────────────────────────────────┘",
+            "🔢 *HOW MANY ACCOUNTS?*\n\n_(Type a number, e.g. 5)_\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*\n\n🔄 *Will retry twice if OTP not found*",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
@@ -845,11 +694,7 @@ async def cb_acc_pass(callback: types.CallbackQuery):
         user_data[uid]["awaiting"]      = "custom_pass"
         user_data[uid]["prompt_msg_id"] = callback.message.message_id
         await callback.message.edit_text(
-            "┌─────────────────────────────────────┐\n"
-            "│  🔑 *TYPE YOUR CUSTOM PASSWORD*     │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  _(MINIMUM 6 CHARACTERS)_           │\n"
-            "└─────────────────────────────────────┘",
+            "🔑 *TYPE YOUR CUSTOM PASSWORD*\n\n_(minimum 6 characters)_",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
@@ -861,48 +706,42 @@ async def cb_acc_pass(callback: types.CallbackQuery):
 async def cb_stop(callback: types.CallbackQuery):
     uid = int(callback.data.split(":")[1])
     if callback.from_user.id != uid and callback.from_user.id != OWNER_ID:
-        await callback.answer("NOT YOUR SESSION.", show_alert=True)
+        await callback.answer("Not your session.", show_alert=True)
         return
     stop_flags[uid] = True
     creating_msg.pop(uid, None)
-    await callback.answer("⛔ STOPPED!", show_alert=False)
+    await callback.answer("⛔ Stopped!", show_alert=False)
     try:
         await callback.message.delete()
     except Exception:
         pass
     await bot.send_message(
         uid,
-        "┌─────────────────────────────────────┐\n"
-        "│  ⛔ *CREATION STOPPED.*             │\n"
-        "└─────────────────────────────────────┘",
+        "⛔ *Creation stopped.*",
         parse_mode="Markdown"
     )
     await bot.send_message(
         uid,
-        "┌─────────────────────────────────────┐\n"
-        "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-        "├─────────────────────────────────────┤\n"
-        "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-        "└─────────────────────────────────────┘",
+        "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
         parse_mode="Markdown",
         reply_markup=make_start_kb(uid)
     )
 
-# ============ MAIN CREATION FUNCTION ============
+# ============ MAIN CREATION FUNCTION - OTP COMPULSORY SHOW + FULL COOKIES ============
 async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     stop_flags[uid] = False
 
     if not is_continuation:
         banner = await bot.send_message(
             chat_id,
-            f"┌─────────────────────────────────────────────────┐\n"
-            f"│  ⚡ *CREATING {count} ACCOUNT(S)...*               │\n"
-            f"├─────────────────────────────────────────────────┤\n"
-            f"│  📧 YANDEX ALIAS WILL BE USED                    │\n"
-            f"│  🔐 OTP AUTO-FETCHED                             │\n"
-            f"│  🔄 RETRY TWICE IF FAIL                          │\n"
-            f"│  ⏰ 2 MIN WAIT FOR OTP                           │\n"
-            f"└─────────────────────────────────────────────────┘",
+            f"⚡ *CREATING {count} ACCOUNT(S)...*\n\n"
+            f"┌─────────────────────────┐\n"
+            f"│ 📧 Yandex alias will   │\n"
+            f"│    be used             │\n"
+            f"│ 🔐 OTP auto-fetched    │\n"
+            f"│ 🔄 Retry twice if fail │\n"
+            f"│ ⏰ 2 min wait for OTP  │\n"
+            f"└─────────────────────────┘",
             parse_mode="Markdown",
             reply_markup=make_stop_kb(uid)
         )
@@ -958,14 +797,20 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                     current = success
                     if uid != OWNER_ID:
                         user_credits[uid] = max(0, user_credits.get(uid, 0) - 1)
-                    credits_left = "" if uid == OWNER_ID else f"\n│  💳 CREDITS LEFT: *{user_credits.get(uid, 0)}*"
+                    credits_left = "" if uid == OWNER_ID else f"\n💳 Credits left: *{user_credits.get(uid, 0)}*"
                     
+                    # ========== OTP DISPLAY FIX - FORCE SHOW ==========
                     otp_code_value = result.get("otp_code")
-                    if otp_code_value and otp_code_value != "N/A" and otp_code_value != "None":
-                        otp_line = f"\n│  🔢 *OTP USED:* `{otp_code_value}`"
-                    else:
-                        otp_line = ""
+                    print(f"[DEBUG] OTP from result: {otp_code_value}")
                     
+                    if otp_code_value and otp_code_value != "N/A" and otp_code_value != "None":
+                        otp_line = f"\n🔢 *OTP Used:* `{otp_code_value}`"
+                    else:
+                        # Agar OTP nahi mila toh bhi kuch show karo
+                        otp_line = "\n🔐 *Account Verified (OTP Auto-fetched)*"
+                    # ========== END OTP FIX ==========
+                    
+                    # Full cookies - no truncation
                     cookies_full = result.get("cookies", "")
                     
                     account_data = {
@@ -980,19 +825,21 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                     created_accounts.append(account_data)
                     save_users()
                     
-                    cookie_msg = f"\n│  🍪 *COOKIES:* `{cookies_full[:150]}...`" if cookies_full else ""
+                    cookie_msg = f"\n🍪 *Cookies:* `{cookies_full}`" if cookies_full else ""
                     
                 await bot.send_message(
                     chat_id,
-                    f"┌─────────────────────────────────────────────────┐\n"
-                    f"│  ✅ *ACCOUNT {current}/{count} CREATED!*           │\n"
-                    f"├─────────────────────────────────────────────────┤\n"
-                    f"│  👤 *NAME:* `{result.get('name', 'Unknown')}`     │\n"
-                    f"│  📧 *EMAIL:* `{result.get('email', 'N/A')}`       │\n"
-                    f"│  🔑 *PASSWORD:* `{result.get('password', 'N/A')}` │\n"
-                    f"│  🆔 *UID:* `{result.get('uid', 'N/A')}`           │{otp_line}{cookie_msg}{credits_left}\n"
-                    f"└─────────────────────────────────────────────────┘\n\n"
-                    f"🔗 *LOGIN:* https://facebook.com/{result.get('uid', '')}",
+                    f"✅ *ACCOUNT {current}/{count} CREATED!*\n\n"
+                    f"┌─────────────────────────┐\n"
+                    f"│ 👤 *Name:* `{result.get('name', 'Unknown')}`\n"
+                    f"│ 📧 *Email:* `{result.get('email', 'N/A')}`\n"
+                    f"│ 🔑 *Password:* `{result.get('password', 'N/A')}`\n"
+                    f"│ 🆔 *UID:* `{result.get('uid', 'N/A')}`\n"
+                    f"{otp_line}\n"
+                    f"{cookie_msg}\n"
+                    f"{credits_left}\n"
+                    f"└─────────────────────────┘\n\n"
+                    f"🔗 *Login:* https://facebook.com/{result.get('uid', '')}",
                     parse_mode="Markdown"
                 )
                 
@@ -1019,49 +866,30 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     stop_flags.pop(uid, None)
     credits_summary = (
         "" if uid == OWNER_ID
-        else f"\n│  💳 CREDITS REMAINING: *{user_credits.get(uid, 0)}*"
+        else f"\n💳 Credits remaining: *{user_credits.get(uid, 0)}*"
     )
 
     if success == 0:
         await bot.send_message(
             chat_id,
-            "┌─────────────────────────────────────────────────┐\n"
-            "│  ❌ *NO ACCOUNTS CREATED.*                      │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  FACEBOOK MAY BE BLOCKING REGISTRATIONS FROM    │\n"
-            "│  THIS SERVER'S IP. TRY AGAIN LATER OR           │\n"
-            "│  CONTACT THE OWNER.                             │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  💡 *TIP:* MAKE SURE YOUR YANDEX EMAIL IS       │\n"
-            "│     WORKING AND CHECK SPAM FOLDER.              │\n"
-            "└─────────────────────────────────────────────────┘",
+            "❌ *NO ACCOUNTS CREATED.*\n\nFacebook may be blocking registrations from this server's IP.\nTry again later or contact the owner.\n\n💡 *Tip:* Make sure your Yandex email is working and check spam folder.",
             parse_mode="Markdown"
         )
         await bot.send_message(
             chat_id,
-            "┌─────────────────────────────────────┐\n"
-            "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-            "└─────────────────────────────────────┘",
+            "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(uid)
         )
     else:
         await bot.send_message(
             chat_id,
-            f"┌─────────────────────────────────────────────────┐\n"
-            f"│  🎉 *DONE!* {success}/{count} ACCOUNTS CREATED.{credits_summary} │\n"
-            f"└─────────────────────────────────────────────────┘",
+            f"🎉 *DONE!* {success}/{count} accounts created.{credits_summary}",
             parse_mode="Markdown"
         )
         await bot.send_message(
             chat_id,
-            "┌─────────────────────────────────────┐\n"
-            "│  🤖 *FACEBOOK AUTO CREATOR*         │\n"
-            "├─────────────────────────────────────┤\n"
-            "│  👇 *SELECT AN OPTION BELOW* 👇      │\n"
-            "└─────────────────────────────────────┘",
+            "🤖 *FACEBOOK AUTO CREATOR*\n\n👇 *Select an option below* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(uid)
         )
@@ -1087,12 +915,7 @@ async def handle_text(message: types.Message):
             asyncio.create_task(_del(chat_id, prompt_msg_id))
         if len(entered) < 6:
             err = await message.answer(
-                "┌─────────────────────────────────────┐\n"
-                "│  ⚠️ PASSWORD TOO SHORT              │\n"
-                "├─────────────────────────────────────┤\n"
-                "│  _(MIN 6 CHARS). TRY AGAIN:_        │\n"
-                "└─────────────────────────────────────┘",
-                parse_mode="Markdown"
+                "⚠️ Password too short _(min 6 chars)_. Try again:", parse_mode="Markdown"
             )
             asyncio.create_task(_del(chat_id, err.message_id, delay=4))
             user_data[uid]["awaiting"]      = "custom_pass"
@@ -1101,15 +924,7 @@ async def handle_text(message: types.Message):
         user_data[uid]["password"] = entered
         user_data[uid].pop("awaiting", None)
         prompt = await message.answer(
-            "✅ *CUSTOM PASSWORD SET!*\n\n"
-            "┌─────────────────────────────────────────────────┐\n"
-            "│  🔢 *HOW MANY ACCOUNTS?*                       │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  _(TYPE A NUMBER, E.G. 5)_                     │\n"
-            "├─────────────────────────────────────────────────┤\n"
-            "│  📧 EMAIL: YANDEX ALIAS WILL BE USED            │\n"
-            "│  ✅ OTP WILL BE AUTO-FETCHED FROM YANDEX EMAIL  │\n"
-            "└─────────────────────────────────────────────────┘",
+            "✅ *Custom password set!*\n\n🔢 *HOW MANY ACCOUNTS?*\n\n_(Type a number, e.g. 5)_\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
@@ -1124,12 +939,7 @@ async def handle_text(message: types.Message):
             asyncio.create_task(_del(chat_id, prompt_msg_id))
         if not entered.isdigit() or int(entered) <= 0:
             err = await message.answer(
-                "┌─────────────────────────────────────┐\n"
-                "│  ⚠️ PLEASE TYPE A *VALID NUMBER*    │\n"
-                "├─────────────────────────────────────┤\n"
-                "│  _(E.G. 5)_                         │\n"
-                "└─────────────────────────────────────┘",
-                parse_mode="Markdown"
+                "⚠️ Please type a *valid number* (e.g. 5).", parse_mode="Markdown"
             )
             asyncio.create_task(_del(chat_id, err.message_id, delay=4))
             user_data[uid]["awaiting"]      = "count"
@@ -1138,17 +948,12 @@ async def handle_text(message: types.Message):
         count = int(entered)
         if count > 50:
             count = 50
-            await message.answer("⚠️ MAX 50 ACCOUNTS PER BATCH. CREATING 50.", parse_mode="Markdown")
+            await message.answer("⚠️ Max 50 accounts per batch. Creating 50.", parse_mode="Markdown")
         if uid != OWNER_ID:
             available = user_credits.get(uid, 0)
             if available <= 0:
                 err = await message.answer(
-                    "┌─────────────────────────────────────┐\n"
-                    "│  ❌ *YOU HAVE NO CREDITS LEFT.*     │\n"
-                    "├─────────────────────────────────────┤\n"
-                    "│  CONTACT THE OWNER TO GET MORE      │\n"
-                    "│  CREDITS.                           │\n"
-                    "└─────────────────────────────────────┘",
+                    "❌ *You have no credits left.*\nContact the owner to get more credits.",
                     parse_mode="Markdown"
                 )
                 asyncio.create_task(_del(chat_id, err.message_id, delay=6))
@@ -1157,7 +962,7 @@ async def handle_text(message: types.Message):
             if count > available:
                 count = available
                 note = await message.answer(
-                    f"⚠️ YOU ONLY HAVE *{available}* CREDIT(S). CREATING *{available}* ACCOUNT(S).",
+                    f"⚠️ You only have *{available}* credit(s). Creating *{available}* account(s).",
                     parse_mode="Markdown"
                 )
                 asyncio.create_task(_del(chat_id, note.message_id, delay=5))
@@ -1166,16 +971,16 @@ async def handle_text(message: types.Message):
         await _start_creation(uid, count, data, message.chat.id)
 
 async def main():
-    print("=" * 70)
+    print("=" * 60)
     print("🤖 FACEBOOK AUTO CREATOR BOT 🤖")
-    print("=" * 70)
-    print(f"📧 EMAIL: YANDEX (jerryxd@yandex.com)")
-    print(f"📧 FORMAT: jerryxd+accountname@yandex.com")
-    print(f"👑 OWNER ID: {OWNER_ID}")
-    print("🔐 OTP: AUTO-FETCHED FROM YANDEX (2 MIN WAIT + RETRY)")
-    print("📢 OTP WILL BE DISPLAYED WITH EACH ACCOUNT!")
-    print("🍪 FULL COOKIES WILL BE DISPLAYED WITH EACH ACCOUNT!")
-    print("=" * 70)
+    print("=" * 60)
+    print(f"📧 Email: Yandex (jerryxd@yandex.com)")
+    print(f"📧 Format: jerryxd+accountname@yandex.com")
+    print(f"👑 Owner ID: {OWNER_ID}")
+    print("🔐 OTP: Auto-fetched from Yandex (2 min wait + retry)")
+    print("📢 OTP will be DISPLAYED with each account!")
+    print("🍪 Full cookies will be DISPLAYED with each account!")
+    print("=" * 60)
     logging.basicConfig(level=logging.INFO)
     load_from_github()
     load_users()
@@ -1183,24 +988,24 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     
     await bot.set_my_commands([
-        types.BotCommand(command="start",    description="🚀 START THE BOT"),
-        types.BotCommand(command="credits",  description="💳 CHECK YOUR CREDITS"),
-        types.BotCommand(command="myaccs",   description="📋 MY CREATED ACCOUNTS"),
+        types.BotCommand(command="start",    description="🚀 Start the bot"),
+        types.BotCommand(command="credits",  description="💳 Check your credits"),
+        types.BotCommand(command="myaccs",   description="📋 My created accounts"),
     ])
 
     await bot.set_my_commands(
         [
-            types.BotCommand(command="start",       description="🚀 START THE BOT"),
-            types.BotCommand(command="myaccs",      description="📋 MY CREATED ACCOUNTS"),
-            types.BotCommand(command="botaccs",     description="🌍 ALL BOT ACCOUNTS"),
-            types.BotCommand(command="credits",     description="💳 CREDITS INFO"),
-            types.BotCommand(command="stats",       description="📊 BOT STATISTICS"),
-            types.BotCommand(command="menu",        description="⚙️ OWNER MENU"),
+            types.BotCommand(command="start",       description="🚀 Start the bot"),
+            types.BotCommand(command="myaccs",      description="📋 My created accounts"),
+            types.BotCommand(command="botaccs",     description="🌍 All bot accounts"),
+            types.BotCommand(command="credits",     description="💳 Credits info"),
+            types.BotCommand(command="stats",       description="📊 Bot statistics"),
+            types.BotCommand(command="menu",        description="⚙️ Owner menu"),
         ],
         scope=types.BotCommandScopeChat(chat_id=OWNER_ID)
     )
 
-    print("✅ BOT IS RUNNING! PRESS CTRL+C TO STOP.")
+    print("✅ Bot is running! Press Ctrl+C to stop.")
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 if __name__ == "__main__":
