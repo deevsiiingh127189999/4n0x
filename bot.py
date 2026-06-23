@@ -11,7 +11,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ============ BOT CONFIGURATION ============
-BOT_TOKEN = "8101206245:AAENv9gxlh_T2RnXoZuA9Ljztss2OY5vvVY"
+BOT_TOKEN = "8101206245:AAElTLDkAPVE5gFaQwqxWwe2jcu1NN8v2AE"
 OWNER_ID = 6162078955
 # ===========================================
 
