@@ -11,7 +11,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ============ BOT CONFIGURATION ============
-BOT_TOKEN = "8101206245:AAElTLDkAPVE5gFaQwqxWwe2jcu1NN8v2AE"
+BOT_TOKEN = "8675598309:AAFGGbJh8HlR0TraxpbWkRy8PSVs4wmkaPQ"
 OWNER_ID = 6162078955
 # ===========================================
 
@@ -109,7 +109,7 @@ def save_users():
 def make_start_kb(uid=0):
     is_owner = (uid == OWNER_ID)
     rows = [
-        [InlineKeyboardButton(text="😈 START CREATION 😈", callback_data="menu:create")]
+        [InlineKeyboardButton(text="✨ START CREATION ✨", callback_data="menu:create")]
     ]
     if is_owner:
         rows.append([
@@ -143,6 +143,13 @@ def make_acc_pass_kb():
         [InlineKeyboardButton(text="🔑 Custom Password", callback_data="accpass:custom")],
         [InlineKeyboardButton(text="🎲 Random Password", callback_data="accpass:random")],
         [InlineKeyboardButton(text="◀️ BACK", callback_data="back:gender")],
+    ])
+
+def make_email_phone_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📧 Email", callback_data="input:email")],
+        [InlineKeyboardButton(text="📱 Phone Number", callback_data="input:phone")],
+        [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")],
     ])
 
 def make_stop_kb(uid):
@@ -242,16 +249,17 @@ async def cmd_start(message: types.Message):
             f"🤖 *Facebook Auto Creator Bot*\n\n"
             f"┌─────────────────────────┐\n"
             f"│  🔥 Fast & Reliable     │\n"
-            f"│  📧 Yandex Email Support│\n"
-            f"│  🔐 Auto OTP Fetch      │\n"
+            f"│  📧 Manual Email/Phone  │\n"
+            f"│  🔐 You verify OTP      │\n"
             f"└─────────────────────────┘\n\n"
             f"📌 *HOW TO USE:*\n"
             f"1️⃣ Tap *START CREATION*\n"
             f"2️⃣ Choose name style\n"
             f"3️⃣ Choose gender\n"
             f"4️⃣ Set account password\n"
-            f"5️⃣ Type how many accounts\n"
-            f"6️⃣ Get results instantly!\n\n"
+            f"5️⃣ Enter your Email/Phone\n"
+            f"6️⃣ Verify OTP yourself\n"
+            f"7️⃣ Get account details!\n\n"
             f"⚠️ *Note:* Access requires owner approval.",
             parse_mode="Markdown"
         )
@@ -414,7 +422,7 @@ async def cb_give_credits(callback: types.CallbackQuery):
             asyncio.create_task(_del(target_id, req_msg_id))
         await bot.send_message(
             target_id,
-            f"✅ *ACCESS APPROVED!*\n\n💳 You've been given *{amount}* credit(s).\n_(1 credit = 1 Facebook account)_\n\n📧 *Email:* Yandex alias will be used\n\n👇 *Tap below to start* 👇",
+            f"✅ *ACCESS APPROVED!*\n\n💳 You've been given *{amount}* credit(s).\n_(1 credit = 1 Facebook account)_\n\n📧 *You will enter your own Email/Phone*\n\n👇 *Tap below to start* 👇",
             parse_mode="Markdown",
             reply_markup=make_start_kb(target_id)
         )
@@ -665,7 +673,6 @@ async def cb_gender_select(callback: types.CallbackQuery):
         await callback.answer("Session expired. Use /start", show_alert=True)
         return
     user_data[uid]["gender"] = callback.data.split(":")[1]
-    user_data[uid]["domain"] = "yandex"
     await callback.message.edit_text(
         "🔑 *SET ACCOUNT PASSWORD*\n\nChoose option:",
         parse_mode="Markdown",
@@ -680,22 +687,61 @@ async def cb_acc_pass(callback: types.CallbackQuery):
         await callback.answer("Session expired. Use /start", show_alert=True)
         return
     choice = callback.data.split(":")[1]
+    
     if choice == "random":
-        user_data[uid]["password"]      = None
-        user_data[uid]["awaiting"]      = "count"
+        user_data[uid]["password"] = None
+        user_data[uid]["awaiting"] = "count"
         user_data[uid]["prompt_msg_id"] = callback.message.message_id
         await callback.message.edit_text(
-            "🔢 *HOW MANY ACCOUNTS?*\n\n_(Type a number, e.g. 5)_\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*\n\n🔄 *Will retry twice if OTP not found*",
+            "🔢 *HOW MANY ACCOUNTS?*\n\n_(Type a number, e.g. 5)_\n\n"
+            "📧 *After this, you'll enter your Email/Phone*\n"
+            "🔐 *You will verify OTP yourself*",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
             ])
         )
     else:
-        user_data[uid]["awaiting"]      = "custom_pass"
+        user_data[uid]["awaiting"] = "custom_pass"
         user_data[uid]["prompt_msg_id"] = callback.message.message_id
         await callback.message.edit_text(
             "🔑 *TYPE YOUR CUSTOM PASSWORD*\n\n_(minimum 6 characters)_",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
+            ])
+        )
+    await callback.answer()
+
+@dp.callback_query(lambda c: c.data.startswith("input:"))
+async def cb_input_type(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+    if uid not in user_data:
+        await callback.answer("Session expired. Use /start", show_alert=True)
+        return
+    
+    input_type = callback.data.split(":")[1]
+    user_data[uid]["input_type"] = input_type
+    user_data[uid]["awaiting"] = "email_phone"
+    user_data[uid]["prompt_msg_id"] = callback.message.message_id
+    
+    if input_type == "email":
+        await callback.message.edit_text(
+            "📧 *ENTER YOUR EMAIL*\n\n"
+            "_(Type the email address you want to use for Facebook registration)_\n\n"
+            "⚠️ *OTP will be sent to this email*\n"
+            "🔐 *You will verify OTP yourself*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
+            ])
+        )
+    else:
+        await callback.message.edit_text(
+            "📱 *ENTER YOUR PHONE NUMBER*\n\n"
+            "_(Type the phone number with country code, e.g. +919876543210)_\n\n"
+            "⚠️ *OTP will be sent to this number*\n"
+            "🔐 *You will verify OTP yourself*",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
@@ -728,21 +774,28 @@ async def cb_stop(callback: types.CallbackQuery):
         reply_markup=make_start_kb(uid)
     )
 
-# ============ MAIN CREATION FUNCTION - FIXED OTP DISPLAY ============
 async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     stop_flags[uid] = False
+    
+    input_type = data.get("input_type", "email")
+    email_phone = data.get("email_phone", "")
+    
+    if not email_phone:
+        await bot.send_message(chat_id, "❌ No email/phone provided. Please start again.")
+        return
 
     if not is_continuation:
         banner = await bot.send_message(
             chat_id,
             f"⚡ *CREATING {count} ACCOUNT(S)...*\n\n"
             f"┌─────────────────────────┐\n"
-            f"│ 📧 Yandex alias will   │\n"
-            f"│    be used             │\n"
-            f"│ 🔐 OTP auto-fetched    │\n"
-            f"│ 🔄 Retry twice if fail │\n"
-            f"│ ⏰ 3 min wait for OTP  │\n"
-            f"└─────────────────────────┘",
+            f"│ 📧 {'Email' if input_type == 'email' else 'Phone'}: `{email_phone}`\n"
+            f"│ 🔐 OTP will be sent     │\n"
+            f"│ ✅ You verify OTP       │\n"
+            f"│ 📝 Account created      │\n"
+            f"│    with your contact    │\n"
+            f"└─────────────────────────┘\n\n"
+            f"⏳ *Creating... Please wait*",
             parse_mode="Markdown",
             reply_markup=make_stop_kb(uid)
         )
@@ -769,8 +822,9 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
 
             def _register():
                 try:
-                    result = fb.register_account_for_bot(
-                        domain_choice="yandex",
+                    result = fb.register_account_with_manual_contact(
+                        contact=email_phone,
+                        contact_type=input_type,
                         name_option=name_val,
                         gender_option=gender_val,
                         custom_pass=custom_pw,
@@ -790,7 +844,7 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                     stopped = True
                 return
 
-            if result and isinstance(result, dict) and result.get("uid"):
+            if result and isinstance(result, dict) and result.get("uid") and result.get("uid") != "pending_verification":
                 async with lock:
                     if stopped or success >= count:
                         return
@@ -800,28 +854,19 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                         user_credits[uid] = max(0, user_credits.get(uid, 0) - 1)
                     credits_left = "" if uid == OWNER_ID else f"\n💳 Credits left: *{user_credits.get(uid, 0)}*"
                     
-                    # ========== OTP DISPLAY FIX - FORCE SHOW OTP ==========
-                    otp_code_value = result.get("otp_code")
-                    # ALWAYS show OTP if account created successfully
-                    if otp_code_value and str(otp_code_value) not in ["None", "N/A", ""]:
-                        otp_line = f"\n🔢 *OTP:* `{otp_code_value}`"
-                        print(f"[DEBUG] OTP Found and displayed: {otp_code_value}")
-                    else:
-                        # Account verified without OTP or OTP fetched but not stored
-                        otp_line = "\n✅ *Account Verified (OTP Auto-fetched)*"
-                        print(f"[DEBUG] Account verified - OTP was auto-fetched")
-                    # ========== END OTP DISPLAY FIX ==========
+                    otp_line = f"\n📧 *Contact:* `{email_phone}`\n🔢 *OTP:* `Check your {'email' if input_type == 'email' else 'phone'} and verify`"
                     
                     cookies_full = result.get("cookies", "")
                     
                     account_data = {
                         "name":     result.get("name", "Unknown"),
-                        "email":    result.get("email", "N/A"),
+                        "email":    result.get("email", email_phone),
                         "password": result.get("password", "N/A"),
                         "uid":      result.get("uid", "N/A"),
                         "cookies":  cookies_full,
-                        "otp_code": otp_code_value if otp_code_value else "AUTO_FETCHED",
+                        "otp_code": "MANUAL_VERIFICATION",
                         "by":       uid,
+                        "contact":  email_phone,
                     }
                     created_accounts.append(account_data)
                     save_users()
@@ -833,14 +878,44 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
                     f"✅ *ACCOUNT {current}/{count} CREATED!*\n\n"
                     f"┌─────────────────────────┐\n"
                     f"│ 👤 *Name:* `{result.get('name', 'Unknown')}`\n"
-                    f"│ 📧 *Email:* `{result.get('email', 'N/A')}`\n"
+                    f"│ 📧 *Contact:* `{email_phone}`\n"
                     f"│ 🔑 *Password:* `{result.get('password', 'N/A')}`\n"
                     f"│ 🆔 *UID:* `{result.get('uid', 'N/A')}`\n"
                     f"{otp_line}\n"
                     f"{cookie_msg}\n"
                     f"{credits_left}\n"
                     f"└─────────────────────────┘\n\n"
-                    f"🔗 *Login:* https://facebook.com/{result.get('uid', '')}",
+                    f"🔗 *Login:* https://facebook.com/{result.get('uid', '')}\n\n"
+                    f"⚠️ *Verify OTP on your {'email' if input_type == 'email' else 'phone'}!*",
+                    parse_mode="Markdown"
+                )
+                
+                if current >= count:
+                    return
+            
+            elif result and isinstance(result, dict) and result.get("status") == "checkpoint_required":
+                async with lock:
+                    if stopped or success >= count:
+                        return
+                    success += 1
+                    current = success
+                    if uid != OWNER_ID:
+                        user_credits[uid] = max(0, user_credits.get(uid, 0) - 1)
+                    credits_left = "" if uid == OWNER_ID else f"\n💳 Credits left: *{user_credits.get(uid, 0)}*"
+                
+                await bot.send_message(
+                    chat_id,
+                    f"⚠️ *ACCOUNT {current}/{count} - OTP REQUIRED!*\n\n"
+                    f"┌─────────────────────────┐\n"
+                    f"│ 👤 *Name:* `{result.get('name', 'Unknown')}`\n"
+                    f"│ 📧 *Contact:* `{email_phone}`\n"
+                    f"│ 🔑 *Password:* `{result.get('password', 'N/A')}`\n"
+                    f"│ 🔢 *OTP:* `Check your {'email' if input_type == 'email' else 'phone'}`\n"
+                    f"│ ⏳ *Status:* Pending OTP\n"
+                    f"{credits_left}\n"
+                    f"└─────────────────────────┘\n\n"
+                    f"🔐 *Please verify OTP on your {'email' if input_type == 'email' else 'phone'}*\n"
+                    f"✅ *After verification, login at:* https://facebook.com",
                     parse_mode="Markdown"
                 )
                 
@@ -873,7 +948,7 @@ async def _start_creation(uid, count, data, chat_id, is_continuation=False):
     if success == 0:
         await bot.send_message(
             chat_id,
-            "❌ *NO ACCOUNTS CREATED.*\n\nFacebook may be blocking registrations from this server's IP.\nTry again later or contact the owner.\n\n💡 *Tip:* Make sure your Yandex email is working and check spam folder.",
+            "❌ *NO ACCOUNTS CREATED.*\n\nFacebook may be blocking registrations from this server's IP.\nTry again later or contact the owner.\n\n💡 *Tip:* Make sure your contact is correct.",
             parse_mode="Markdown"
         )
         await bot.send_message(
@@ -904,12 +979,61 @@ async def handle_text(message: types.Message):
     data     = user_data.get(uid)
     awaiting = data.get("awaiting") if data else None
 
-    if not data or awaiting not in ("custom_pass", "count"):
+    if not data or awaiting not in ("custom_pass", "count", "email_phone"):
         return
 
     prompt_msg_id = data.pop("prompt_msg_id", None)
 
     asyncio.create_task(_del(chat_id, message.message_id))
+
+    if awaiting == "email_phone":
+        if prompt_msg_id:
+            asyncio.create_task(_del(chat_id, prompt_msg_id))
+        
+        input_type = data.get("input_type", "email")
+        is_valid = False
+        
+        if input_type == "email":
+            if "@" in entered and "." in entered:
+                is_valid = True
+            else:
+                err = await message.answer(
+                    "⚠️ *Invalid email format!*\n\nPlease enter a valid email address (e.g., user@example.com)",
+                    parse_mode="Markdown"
+                )
+                asyncio.create_task(_del(chat_id, err.message_id, delay=5))
+                user_data[uid]["awaiting"] = "email_phone"
+                user_data[uid]["prompt_msg_id"] = err.message_id
+                return
+        else:
+            if entered.startswith("+") and len(entered) >= 10:
+                is_valid = True
+            else:
+                err = await message.answer(
+                    "⚠️ *Invalid phone number!*\n\nPlease enter with country code (e.g., +919876543210)",
+                    parse_mode="Markdown"
+                )
+                asyncio.create_task(_del(chat_id, err.message_id, delay=5))
+                user_data[uid]["awaiting"] = "email_phone"
+                user_data[uid]["prompt_msg_id"] = err.message_id
+                return
+        
+        data["email_phone"] = entered
+        data["awaiting"] = "count"
+        prompt = await message.answer(
+            f"✅ *{'Email' if input_type == 'email' else 'Phone'} saved!*\n\n"
+            f"📧 *Contact:* `{entered}`\n\n"
+            f"🔢 *HOW MANY ACCOUNTS?*\n\n"
+            f"_(Type a number, e.g. 5)_\n\n"
+            f"⚠️ *OTP will be sent to your {'email' if input_type == 'email' else 'phone'}*\n"
+            f"🔐 *You will verify OTP yourself*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
+            ])
+        )
+        data["prompt_msg_id"] = prompt.message_id
+        return
 
     if awaiting == "custom_pass":
         if prompt_msg_id:
@@ -919,20 +1043,19 @@ async def handle_text(message: types.Message):
                 "⚠️ Password too short _(min 6 chars)_. Try again:", parse_mode="Markdown"
             )
             asyncio.create_task(_del(chat_id, err.message_id, delay=4))
-            user_data[uid]["awaiting"]      = "custom_pass"
+            user_data[uid]["awaiting"] = "custom_pass"
             user_data[uid]["prompt_msg_id"] = err.message_id
             return
         user_data[uid]["password"] = entered
         user_data[uid].pop("awaiting", None)
-        prompt = await message.answer(
-            "✅ *Custom password set!*\n\n🔢 *HOW MANY ACCOUNTS?*\n\n_(Type a number, e.g. 5)_\n\n📧 *Email:* Yandex alias will be used\n\n✅ *OTP will be automatically fetched from Yandex email!*",
+        
+        await message.answer(
+            "✅ *Custom password set!*\n\n"
+            "📧 *Now enter your Email or Phone for registration*\n\n"
+            "Choose one:",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="◀️ BACK", callback_data="back:accpass")]
-            ])
+            reply_markup=make_email_phone_kb()
         )
-        user_data[uid]["awaiting"]      = "count"
-        user_data[uid]["prompt_msg_id"] = prompt.message_id
         return
 
     if awaiting == "count":
@@ -943,7 +1066,7 @@ async def handle_text(message: types.Message):
                 "⚠️ Please type a *valid number* (e.g. 5).", parse_mode="Markdown"
             )
             asyncio.create_task(_del(chat_id, err.message_id, delay=4))
-            user_data[uid]["awaiting"]      = "count"
+            user_data[uid]["awaiting"] = "count"
             user_data[uid]["prompt_msg_id"] = err.message_id
             return
         count = int(entered)
@@ -975,12 +1098,11 @@ async def main():
     print("=" * 60)
     print("🤖 FACEBOOK AUTO CREATOR BOT 🤖")
     print("=" * 60)
-    print(f"📧 Email: Yandex (jerryxd@yandex.com)")
-    print(f"📧 Format: jerryxd+accountname@yandex.com")
+    print(f"📧 Email: Manual Entry (User provides)")
+    print(f"📱 Phone: Manual Entry (User provides)")
     print(f"👑 Owner ID: {OWNER_ID}")
-    print("🔐 OTP: Auto-fetched from Yandex (3 min wait + retry)")
-    print("📢 OTP will be DISPLAYED with each account!")
-    print("🍪 Full cookies will be DISPLAYED with each account!")
+    print("🔐 OTP: User verifies manually")
+    print("📢 OTP NOT auto-fetched - User handles verification")
     print("=" * 60)
     logging.basicConfig(level=logging.INFO)
     load_from_github()
